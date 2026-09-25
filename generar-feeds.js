@@ -258,6 +258,10 @@ function escribirIndice(tiendas, uso, remotos) {
   <div class="metrica"><span>Agotados · no se envían</span><strong>${numero(estado.agotados)}</strong></div>
 </div>
 ${estado.incompletos ? `<p class="aviso">${numero(estado.incompletos)} SKUs con stock no se envían porque les falta imagen o precio en VTEX.</p>` : ''}
+${estado.link_roto ? `<details class="aviso"><summary>${numero(estado.link_roto)} SKUs no se envían porque su página no existe en la tienda (error 404). Corrígelo en VTEX.</summary>` +
+  `<p>En VTEX → Catálogo → Productos, abre cada producto y quita los espacios del campo <b>Texto del link</b>:</p><ul>` +
+  (estado.links_rotos || []).map((l) => `<li>ID ${html(l.producto)} · ${html(l.nombre)} · <code>${html(l.texto_link)}</code></li>`).join('') +
+  '</ul></details>' : ''}
 ${impuestoMixto(estado.fuente_precio) ? `<p class="aviso">${numero(estado.fuente_precio.base)} SKUs llegan sin impuesto mientras el resto sí lo trae: revisa que su precio coincida con la tienda.</p>` : ''}
 <div class="feeds">${filas}</div>
 ${bloqueExclusiones(t, estado, repo, html, numero)}
@@ -557,7 +561,7 @@ async function generarTienda(t, previo) {
   const fuentes = {};
   const productos = new Set();
   const skus = new Set();
-  const conteo = { encontrados: 0, agotados: 0, incompletos: 0 };
+  const conteo = { encontrados: 0, agotados: 0, incompletos: 0, link_roto: 0, links_rotos: [] };
   const rastreo = await rastrear(t, (lote) => {
     for (const p of lote) {
       productos.add(p.productId);
@@ -607,6 +611,8 @@ async function generarTienda(t, previo) {
     skus: items.length,
     agotados: conteo.agotados,
     incompletos: conteo.incompletos,
+    link_roto: conteo.link_roto,
+    links_rotos: conteo.links_rotos,
     cambios,
     fuente_precio: fuentes,
     feeds,
@@ -736,6 +742,14 @@ function agregarItems(p, t, items, vistos, fuentes, conteo) {
     if (vistos.has(sku.itemId)) continue;
     vistos.add(sku.itemId);
     conteo.encontrados++;
+    // Un texto de link con espacios en VTEX produce una página 404: no se envía y se reporta en la app.
+    if (/\s/.test(p.linkText || '')) {
+      conteo.link_roto++;
+      if (!conteo.links_rotos.some((l) => l.producto === p.productId) && conteo.links_rotos.length < 50) {
+        conteo.links_rotos.push({ producto: p.productId, nombre: p.productName, texto_link: p.linkText });
+      }
+      continue;
+    }
     const seller = elegirSeller(sku.sellers || []);
     const oferta = (seller && seller.commertialOffer) || {};
     const venta = precioFront(oferta.Price, oferta, t);
@@ -747,7 +761,7 @@ function agregarItems(p, t, items, vistos, fuentes, conteo) {
       grupo: String(p.productId),
       titulo,
       descripcion: limpiarHtml(p.description || p.metaTagDescription) || t.descripcion_default || titulo,
-      link: `${t.dominio.replace(/\/+$/, '')}/${p.linkText}/p?skuId=${sku.itemId}`,
+      link: `${t.dominio.replace(/\/+$/, '')}/${encodeURI(p.linkText)}/p?skuId=${sku.itemId}`,
       imagenes: fotos.map((i) => imagen(i.imageUrl, t.tamano_imagen || 800)).filter(Boolean),
       imagenesPinterest: fotos.map((i) => imagen(i.imageUrl, 1000, 1500)).filter(Boolean),
       disponible: venta.valor > 0 && (oferta.AvailableQuantity > 0 || oferta.IsAvailable === true),
