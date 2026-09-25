@@ -93,40 +93,51 @@ function escribirIndice(tiendas) {
   const html = (v) => String(v == null ? '' : v)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-  const tarjetas = tiendas.map((t) => {
-    const estado = leerJson(path.join(SALIDA, t.slug, 'estado.json'));
+  const fecha = (iso) => `<time datetime="${html(iso)}">${html(iso)}</time>`;
+  const numero = (n) => Number(n || 0).toLocaleString('es-CO');
+  const estados = tiendas.map((t) => leerJson(path.join(SALIDA, t.slug, 'estado.json')));
+  const totalPublicados = estados.reduce((s, e) => s + ((e && e.skus) || 0), 0);
+  const ultima = estados.map((e) => e && e.actualizado).filter(Boolean).sort().pop();
+
+  const tarjetas = tiendas.map((t, indice) => {
+    const estado = estados[indice];
     const feeds = t.feeds || FEEDS_INDICE.map((f) => f[0]);
-    const filas = FEEDS_INDICE.filter(([id]) => feeds.includes(id)).map(([, nombre, archivo]) => {
+    const filas = FEEDS_INDICE.filter(([id]) => feeds.includes(id)).map(([id, nombre, archivo]) => {
       const url = `${base}/${t.slug}/${archivo}`;
-      return `<div class="fila"><span class="plataforma">${nombre}</span>` +
+      return `<div class="feed"><span class="plataforma"><i class="marca marca-${id}">${nombre[0]}</i>${nombre}</span>` +
         `<input readonly value="${html(url)}" aria-label="Enlace ${nombre}">` +
-        `<button type="button" data-copiar="${html(url)}">Copiar</button></div>`;
+        `<button type="button" class="copiar" data-copiar="${html(url)}">Copiar</button></div>`;
     }).join('');
-    const fecha = (iso) => `<time datetime="${html(iso)}">${html(iso)}</time>`;
-    const numero = (n) => Number(n || 0).toLocaleString('es-CO');
     const historial = (estado && estado.historial) || [];
-    const resumen = estado ? `
-<div class="act">
-  <div><span>Última actualización</span><strong>${fecha(estado.actualizado)}</strong></div>
-  <div><span>Próxima (aprox.)</span><strong data-proxima="${html(proximaActualizacion(estado))}">${fecha(proximaActualizacion(estado))}</strong></div>
-  <div><span>Cambios en el feed</span><strong>${textoCambios(estado.cambios)}</strong></div>
-  <div><span>Encontrados en VTEX</span><strong>${numero(estado.skus_encontrados)} SKUs · ${numero(estado.productos)} productos</strong></div>
-  <div><span>Publicados (con stock)</span><strong class="bien">${numero(estado.skus)}</strong></div>
-  <div><span>Agotados (no se envían)</span><strong>${numero(estado.agotados)}</strong></div>
+    const frecuencia = estado && estado.frecuencia_horas > 1 ? 'Diaria' : 'Cada hora';
+    const cuerpo = estado ? `
+<div class="metricas">
+  <div class="metrica"><span>Última actualización</span><strong>${fecha(estado.actualizado)}</strong></div>
+  <div class="metrica"><span>Próxima (aprox.)</span><strong data-proxima="${html(proximaActualizacion(estado))}">${fecha(proximaActualizacion(estado))}</strong></div>
+  <div class="metrica"><span>Cambios en el feed</span><strong>${textoCambios(estado.cambios)}</strong></div>
+  <div class="metrica"><span>Encontrados en VTEX</span><strong>${numero(estado.skus_encontrados)} <small>SKUs · ${numero(estado.productos)} productos</small></strong></div>
+  <div class="metrica destacada"><span>Publicados con stock</span><strong>${numero(estado.skus)}</strong></div>
+  <div class="metrica"><span>Agotados · no se envían</span><strong>${numero(estado.agotados)}</strong></div>
 </div>
 ${estado.incompletos ? `<p class="aviso">${numero(estado.incompletos)} SKUs con stock no se envían porque les falta imagen o precio en VTEX.</p>` : ''}
-<p class="resumen">Se actualiza cada ${estado.frecuencia_horas === 1 ? 'hora' : `${estado.frecuencia_horas} h`} · <a href="${base}/${t.slug}/estado.json" target="_blank">estado técnico</a></p>
-${historial.length ? `<details><summary>Historial de actualizaciones (${historial.length})</summary><table>
+${impuestoMixto(estado.fuente_precio) ? `<p class="aviso">${numero(estado.fuente_precio.base)} SKUs llegan sin impuesto mientras el resto sí lo trae: revisa que su precio coincida con la tienda.</p>` : ''}
+<div class="feeds">${filas}</div>
+<div class="pie-tarjeta">
+${historial.length ? `<details><summary>Historial de actualizaciones (${historial.length})</summary><div class="tabla"><table>
 <thead><tr><th>Fecha</th><th>Encontrados</th><th>Publicados</th><th>Agotados</th><th>Cambios</th></tr></thead><tbody>
 ${historial.map((h) => `<tr><td>${fecha(h.fecha)}</td><td>${h.skus_encontrados == null ? '—' : numero(h.skus_encontrados)}</td>` +
   `<td>${numero(h.skus)}</td><td>${h.agotados == null ? '—' : numero(h.agotados)}</td><td>${textoCambios(h)}</td></tr>`).join('\n')}
-</tbody></table></details>` : ''}`
-      : '<p class="resumen">Generando los feeds por primera vez… En catálogos grandes puede tardar varios minutos; los enlaces funcionarán cuando aparezca la fecha de actualización.</p>';
-    const aviso = estado && impuestoMixto(estado.fuente_precio)
-      ? `<p class="aviso">${numero(estado.fuente_precio.base)} SKUs llegan sin impuesto mientras el resto sí lo trae: revisa que su precio coincida con la tienda.</p>` : '';
-    return `<section class="tienda"><header><h2>${html(t.nombre)}</h2>` +
-      `<a href="${html(t.dominio)}" target="_blank" rel="noopener">${html(t.dominio.replace(/^https?:\/\//, ''))}</a></header>` +
-      `${resumen}${aviso}${filas}</section>`;
+</tbody></table></div></details>` : '<span></span>'}
+<a class="tecnico" href="${base}/${t.slug}/estado.json" target="_blank">Estado técnico</a>
+</div>`
+      : `<p class="generando"><span class="punto"></span>Generando los feeds por primera vez. En catálogos grandes puede tardar varios minutos; los enlaces funcionarán cuando aparezca la fecha de actualización.</p>
+<div class="feeds">${filas}</div>`;
+    return `<section class="tienda">
+<header class="cabecera">
+  <div><h2>${html(t.nombre)}</h2><a href="${html(t.dominio)}" target="_blank" rel="noopener">${html(t.dominio.replace(/^https?:\/\/(www\.)?/, ''))}</a></div>
+  <div class="chips">${estado ? `<span class="chip">${frecuencia}</span><span class="chip estado" data-estado="${html(proximaActualizacion(estado))}">Al día</span>` : '<span class="chip gris">Generando</span>'}</div>
+</header>${cuerpo}
+</section>`;
   }).join('\n');
 
   escribir(path.join(SALIDA, 'index.html'), `<!DOCTYPE html>
@@ -135,64 +146,119 @@ ${historial.map((h) => `<tr><td>${fecha(h.fecha)}</td><td>${h.skus_encontrados =
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Feeds VTEX</title>
+<title>Feeds VTEX · Experimentality</title>
+<link rel="icon" href="https://www.experimentality.co/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root { --fondo:#f6f7f9; --tarjeta:#fff; --texto:#1b1f24; --suave:#5b636e; --borde:#dde1e6; --acento:#1f6feb; --aviso:#9a6700; --error:#cf222e; --bien:#1a7f37; }
-@media (prefers-color-scheme: dark) { :root { --fondo:#0d1117; --tarjeta:#161b22; --texto:#e6edf3; --suave:#9aa4af; --borde:#30363d; --acento:#4493f8; --aviso:#d29922; --error:#f85149; --bien:#3fb950; } }
-* { box-sizing: border-box; }
-body { margin:0; background:var(--fondo); color:var(--texto); font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-main { max-width:880px; margin:0 auto; padding:32px 16px 64px; }
-.top { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:8px; }
-h1 { margin:0; font-size:24px; }
-.intro { color:var(--suave); margin:0 0 24px; }
-.boton { background:var(--acento); color:#fff; text-decoration:none; padding:10px 16px; border-radius:8px; font-weight:600; }
-.tienda { background:var(--tarjeta); border:1px solid var(--borde); border-radius:12px; padding:18px; margin-bottom:16px; }
-.tienda header { display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; }
-h2 { margin:0; font-size:18px; }
-a { color:var(--acento); }
-.resumen { color:var(--suave); font-size:13px; margin:4px 0 12px; }
-.aviso { color:var(--aviso); font-size:13px; margin:0 0 12px; }
-.fila { display:grid; grid-template-columns:170px 1fr auto; gap:8px; align-items:center; margin-top:8px; }
-.plataforma { font-weight:600; font-size:14px; }
-input { width:100%; min-width:0; font:13px ui-monospace, Consolas, monospace; padding:7px 9px; border:1px solid var(--borde); border-radius:6px; background:var(--fondo); color:var(--texto); }
-button { font:inherit; font-size:13px; padding:7px 12px; border-radius:6px; border:1px solid var(--borde); background:var(--tarjeta); color:var(--texto); cursor:pointer; }
-button.ok { border-color:var(--acento); color:var(--acento); }
-.pie { color:var(--suave); font-size:13px; margin-top:24px; }
-.act { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin:12px 0 6px; }
-.act strong.bien { color:var(--bien); }
-.act div { background:var(--fondo); border:1px solid var(--borde); border-radius:8px; padding:8px 10px; min-width:0; }
-.act span { display:block; color:var(--suave); font-size:12px; }
-.act strong { display:block; font-size:14px; font-weight:600; }
-.act strong.atrasada { color:var(--error); }
-details { margin:0 0 10px; font-size:13px; }
-summary { cursor:pointer; color:var(--acento); }
-table { width:100%; border-collapse:collapse; margin-top:8px; }
-th, td { text-align:left; padding:5px 8px; border-bottom:1px solid var(--borde); }
-th { color:var(--suave); font-weight:600; }
-@media (max-width:700px) { .act { grid-template-columns:1fr 1fr; } }
-@media (max-width:600px) { .fila { grid-template-columns:1fr auto; } .plataforma { grid-column:1 / -1; } }
+:root {
+  --fondo:#f8f8f8; --tarjeta:#fff; --texto:#0a0a0a; --suave:#717171; --borde:#e5e5e5;
+  --verde:#73d15b; --celeste:#0bbef0; --verde-texto:#2f8a1c; --verde-suave:#eef9ea;
+  --degradado:linear-gradient(90deg, var(--verde) 0%, var(--celeste) 100%);
+  --aviso:#9a6700; --aviso-fondo:#fff8e6; --error:#e40014; --error-fondo:#fdecee; --radio:10px;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--fondo); color:var(--texto); font:15px/1.55 Poppins, ui-sans-serif, system-ui, sans-serif; }
+a { color:inherit; }
+.barra { background:rgba(255,255,255,.85); backdrop-filter:blur(8px); border-bottom:1px solid var(--borde); position:sticky; top:0; z-index:5; }
+.barra-in { max-width:1040px; margin:0 auto; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.logo { display:flex; align-items:center; gap:12px; text-decoration:none; }
+.logo img { height:30px; display:block; }
+.logo span { font-size:13px; color:var(--suave); border-left:1px solid var(--borde); padding-left:12px; }
+.boton { background:var(--degradado); color:#fff; text-decoration:none; font-weight:600; font-size:14px; padding:10px 18px; border-radius:8px; white-space:nowrap; box-shadow:0 6px 18px rgba(11,190,240,.22); transition:transform .15s, box-shadow .15s; }
+.boton:hover { transform:translateY(-1px); box-shadow:0 10px 24px rgba(11,190,240,.3); }
+main { max-width:1040px; margin:0 auto; padding:40px 16px 72px; }
+.hero { text-align:center; margin-bottom:36px; }
+.pildora { display:inline-flex; align-items:center; gap:8px; background:var(--verde-suave); border:1px solid #cdeec3; color:#2b4d22; font-size:13px; padding:6px 14px; border-radius:999px; }
+.pildora::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--verde); }
+h1 { font-size:clamp(28px, 4.6vw, 44px); line-height:1.15; font-weight:700; margin:18px 0 10px; letter-spacing:-.01em; }
+.resaltado { background:var(--degradado); -webkit-background-clip:text; background-clip:text; color:transparent; text-decoration:underline; text-decoration-color:var(--verde); text-underline-offset:6px; text-decoration-thickness:3px; }
+.hero p { color:var(--suave); max-width:640px; margin:0 auto; }
+.resumen-global { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin:0 0 28px; }
+.resumen-global div { background:var(--tarjeta); border:1px solid var(--borde); border-radius:var(--radio); padding:14px 16px; }
+.resumen-global span { display:block; font-size:12px; color:var(--suave); }
+.resumen-global strong { font-size:22px; font-weight:700; }
+.tienda { background:var(--tarjeta); border:1px solid var(--borde); border-radius:var(--radio); padding:22px; margin-bottom:18px; box-shadow:0 1px 2px rgba(0,0,0,.03); }
+.cabecera { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-start; gap:10px; }
+h2 { margin:0; font-size:20px; font-weight:600; }
+.cabecera a { font-size:13px; color:var(--suave); text-decoration:none; }
+.cabecera a:hover { color:var(--texto); text-decoration:underline; }
+.chips { display:flex; gap:6px; flex-wrap:wrap; }
+.chip { font-size:12px; font-weight:500; padding:4px 10px; border-radius:999px; background:#f1f5f9; color:#334155; }
+.chip.estado { background:var(--verde-suave); color:var(--verde-texto); }
+.chip.atrasada { background:var(--error-fondo); color:var(--error); }
+.chip.gris { background:#f1f1f1; color:var(--suave); }
+.metricas { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin:18px 0 6px; }
+.metrica { border:1px solid var(--borde); border-radius:8px; padding:10px 12px; min-width:0; }
+.metrica span { display:block; font-size:12px; color:var(--suave); }
+.metrica strong { display:block; font-size:15px; font-weight:600; }
+.metrica small { font-size:12px; font-weight:400; color:var(--suave); }
+.metrica.destacada { border-color:#cdeec3; background:var(--verde-suave); }
+.metrica.destacada strong { color:var(--verde-texto); font-size:18px; }
+.metrica strong.atrasada { color:var(--error); }
+.aviso { background:var(--aviso-fondo); color:var(--aviso); font-size:13px; border-radius:8px; padding:8px 12px; margin:10px 0 0; }
+.generando { display:flex; gap:10px; align-items:flex-start; color:var(--suave); font-size:14px; margin:16px 0 4px; }
+.punto { flex:none; width:10px; height:10px; margin-top:6px; border-radius:50%; background:var(--celeste); animation:pulso 1.2s ease-in-out infinite; }
+@keyframes pulso { 50% { opacity:.3; } }
+.feeds { margin-top:14px; border-top:1px solid var(--borde); padding-top:6px; }
+.feed { display:grid; grid-template-columns:220px 1fr auto; gap:10px; align-items:center; padding:7px 0; }
+.plataforma { display:flex; align-items:center; gap:10px; font-weight:500; font-size:14px; }
+.marca { font-style:normal; width:26px; height:26px; border-radius:7px; display:grid; place-items:center; color:#fff; font-size:13px; font-weight:700; }
+.marca-meta { background:#0866ff; } .marca-tiktok { background:#111; } .marca-pinterest { background:#e60023; } .marca-google { background:#34a853; }
+input { width:100%; min-width:0; font:13px ui-monospace, "Cascadia Code", Consolas, monospace; color:#334155; padding:8px 10px; border:1px solid var(--borde); border-radius:8px; background:#fafafa; }
+.copiar { font:inherit; font-size:13px; font-weight:500; padding:8px 14px; border-radius:8px; border:1px solid var(--borde); background:#fff; cursor:pointer; transition:border-color .15s, color .15s; }
+.copiar:hover { border-color:var(--verde); }
+.copiar.ok { background:var(--verde-suave); border-color:var(--verde); color:var(--verde-texto); }
+.pie-tarjeta { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-top:10px; font-size:13px; }
+.tecnico { color:var(--suave); white-space:nowrap; }
+details { flex:1; min-width:0; }
+summary { cursor:pointer; font-weight:500; color:#0a7fa3; }
+.tabla { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; margin-top:10px; }
+th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--borde); white-space:nowrap; }
+th { font-size:12px; color:var(--suave); font-weight:500; }
+.vacio { text-align:center; color:var(--suave); padding:40px 0; }
+footer { text-align:center; color:var(--suave); font-size:13px; padding:0 16px 40px; }
+footer a { color:var(--suave); }
+@media (max-width:760px) { .metricas, .resumen-global { grid-template-columns:1fr 1fr; } .feed { grid-template-columns:1fr auto; } .plataforma { grid-column:1 / -1; } .logo span { display:none; } }
 </style>
 </head>
 <body>
+<div class="barra"><div class="barra-in">
+  <a class="logo" href="https://www.experimentality.co/es" target="_blank" rel="noopener"><img src="https://www.experimentality.co/logo-light.svg" alt="Experimentality"><span>Feeds VTEX</span></a>
+  <a class="boton" href="https://github.com/${repo}/issues/new?template=nueva-tienda.yml" target="_blank" rel="noopener">+ Agregar tienda</a>
+</div></div>
 <main>
-<div class="top"><h1>Feeds VTEX</h1>
-<a class="boton" href="https://github.com/${repo}/issues/new?template=nueva-tienda.yml" target="_blank" rel="noopener">+ Agregar tienda</a></div>
-<p class="intro">Copia el enlace de cada plataforma y pégalo como feed programado. Menos de 2.500 productos: se actualiza cada hora; desde 2.500: una vez al día.</p>
-${tarjetas || '<p>Aún no hay tiendas. Pulsa “Agregar tienda”.</p>'}
-<p class="pie"><a href="https://github.com/${repo}/actions" target="_blank" rel="noopener">Ver actualizaciones</a> ·
-<a href="https://github.com/${repo}/edit/main/tiendas.json" target="_blank" rel="noopener">Editar tiendas</a></p>
+<section class="hero">
+  <span class="pildora">Meta · TikTok · Pinterest · Google Merchant Center</span>
+  <h1>Feeds de catálogo que se <span class="resaltado">actualizan</span> solos</h1>
+  <p>Copia el enlace de cada plataforma y pégalo como feed programado. Menos de 2.500 productos: cada hora. Desde 2.500: una vez al día.</p>
+</section>
+<div class="resumen-global">
+  <div><span>Tiendas</span><strong>${numero(tiendas.length)}</strong></div>
+  <div><span>SKUs publicados</span><strong>${numero(totalPublicados)}</strong></div>
+  <div><span>Última actualización</span><strong style="font-size:16px">${ultima ? fecha(ultima) : '—'}</strong></div>
+</div>
+${tarjetas || '<p class="vacio">Aún no hay tiendas. Pulsa “Agregar tienda”.</p>'}
 </main>
+<footer>
+  <a href="https://github.com/${repo}/actions" target="_blank" rel="noopener">Ver ejecuciones</a> ·
+  <a href="https://github.com/${repo}/edit/main/tiendas.json" target="_blank" rel="noopener">Editar tiendas</a> ·
+  Hecho por <a href="https://www.experimentality.co/es" target="_blank" rel="noopener">Experimentality</a>
+</footer>
 <script>
 document.querySelectorAll('time').forEach(function (t) {
   var d = new Date(t.getAttribute('datetime'));
   if (!isNaN(d)) t.textContent = d.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
 });
 // Si la próxima actualización ya debió ocurrir hace más de 2 horas, se marca como atrasada.
+var atrasada = function (iso) { return Date.now() - new Date(iso).getTime() > 2 * 3600e3; };
 document.querySelectorAll('[data-proxima]').forEach(function (el) {
-  if (Date.now() - new Date(el.getAttribute('data-proxima')).getTime() > 2 * 3600e3) {
-    el.classList.add('atrasada');
-    el.insertAdjacentText('beforeend', ' · atrasada');
-  }
+  if (atrasada(el.getAttribute('data-proxima'))) { el.classList.add('atrasada'); el.insertAdjacentText('beforeend', ' · atrasada'); }
+});
+document.querySelectorAll('[data-estado]').forEach(function (el) {
+  if (atrasada(el.getAttribute('data-estado'))) { el.classList.add('atrasada'); el.textContent = 'Atrasada'; }
 });
 document.addEventListener('click', function (e) {
   var b = e.target.closest('[data-copiar]');
