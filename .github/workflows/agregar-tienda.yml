@@ -44,8 +44,10 @@ jobs:
           url=$(campo "URL")
           nombre=$(campo "Nombre")
           [ "$nombre" = "_No response_" ] && nombre=""
+          # La categoría de Google va entre paréntesis en la opción elegida.
+          categoria=$(campo "Categoría" | sed -n 's/.*(\(.*\)).*/\1/p')
 
-          resultado=$(node agregar-tienda.js "$url" "$nombre" | tail -n 1 || true)
+          resultado=$(node agregar-tienda.js "$url" "$nombre" "$categoria" | tail -n 1 || true)
           ok=$(jq -r '.ok' <<<"$resultado" 2>/dev/null || echo false)
 
           if [ "$ok" != "true" ]; then

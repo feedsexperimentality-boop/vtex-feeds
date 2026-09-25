@@ -19,3 +19,27 @@ body:
     attributes:
       label: Nombre de la tienda (opcional)
       placeholder: Mi Tienda
+  - type: dropdown
+    id: categoria
+    attributes:
+      label: Categoría principal (para TikTok, Pinterest y Google)
+      description: Lo que más vende la tienda. Si vende de todo, elige la más cercana y luego se afina por categoría.
+      options:
+        - No sé / la defino después
+        - Comida (Food, Beverages & Tobacco > Food Items)
+        - Bebidas (Food, Beverages & Tobacco > Beverages)
+        - Mascotas (Animals & Pet Supplies > Pet Supplies)
+        - Ropa y accesorios (Apparel & Accessories > Clothing)
+        - Calzado (Apparel & Accessories > Shoes)
+        - Joyería y relojes (Apparel & Accessories > Jewelry)
+        - Salud y belleza (Health & Beauty)
+        - Hogar y decoración (Home & Garden)
+        - Electrodomésticos (Home & Garden > Household Appliances)
+        - Electrónica (Electronics)
+        - Muebles (Furniture)
+        - Deportes (Sporting Goods)
+        - Juguetes y bebés (Toys & Games)
+        - Vehículos y repuestos (Vehicles & Parts > Vehicle Parts & Accessories)
+        - Ferretería (Hardware)
+        - Agro e industria (Business & Industrial)
+      default: 0

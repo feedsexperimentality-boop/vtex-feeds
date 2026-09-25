@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Detecta una tienda VTEX a partir de su URL pública y la agrega a tiendas.json.
-// Uso: node agregar-tienda.js https://www.mitienda.com.co [nombre]
+// Uso: node agregar-tienda.js https://www.mitienda.com.co [nombre] [categoría de Google]
 // Imprime en la última línea un JSON con el resultado (lo usa el workflow).
 'use strict';
 
@@ -20,6 +20,7 @@ const MONEDA_POR_DOMINIO = [
 async function main() {
   const entrada = (process.argv[2] || '').trim();
   const nombreManual = (process.argv[3] || '').trim();
+  const categoriaGoogle = (process.argv[4] || '').trim();
   const url = normalizarUrl(entrada);
   if (!url) return fallar('La URL no es válida. Ejemplo: https://www.mitienda.com.co');
 
@@ -51,6 +52,8 @@ async function main() {
     ajuste_precio: 1,
     feeds: ['meta', 'google', 'tiktok', 'pinterest'],
   };
+  // Categoría de la taxonomía de Google para TikTok, Pinterest y Google (Meta no la usa).
+  if (categoriaGoogle) tienda.google_product_category = categoriaGoogle;
   // Las tiendas grandes van a un espacio propio de 1 GB: el que tenga más lugar libre.
   if (total >= UMBRAL_GRANDE) {
     const espacio = await elegirEspacio(tiendas);

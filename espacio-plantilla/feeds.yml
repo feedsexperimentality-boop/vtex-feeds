@@ -6,6 +6,11 @@ on:
   schedule:
     - cron: '17 * * * *'   # cada hora, minuto 17 (UTC); cada tienda grande se regenera una vez al día
   workflow_dispatch:
+    inputs:
+      tienda:
+        description: 'Slug de una tienda para regenerarla ya (vacío = las que les toca)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -47,7 +52,9 @@ jobs:
       - name: Generar tiendas de este espacio
         id: generar
         continue-on-error: true
-        run: node generar-feeds.js --espacio=$ESPACIO
+        env:
+          TIENDA: ${{ inputs.tienda }}
+        run: node generar-feeds.js $TIENDA ${TIENDA:+--forzar} --espacio=$ESPACIO
 
       - name: Guardar copia
         env:
