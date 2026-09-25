@@ -1,0 +1,14 @@
+[
+  {
+    "slug": "papajohns",
+    "nombre": "Papa Johns",
+    "account": "papajohns",
+    "dominio": "https://www.papajohns.com.co",
+    "moneda": "COP",
+    "sc": 1,
+    "marca": "Papa Johns",
+    "descripcion_default": "Pizza deliciosa de Papa Johns",
+    "ajuste_precio": 1,
+    "feeds": ["meta", "google", "tiktok", "pinterest"]
+  }
+]
