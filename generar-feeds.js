@@ -33,8 +33,16 @@ async function main() {
     .map((t) => ({ t, previo: leerJson(path.join(SALIDA, t.slug, 'estado.json')) }))
     .sort((a, b) => productosPrevios(a.previo) - productosPrevios(b.previo));
 
+  // --fase=pequenas / --fase=grandes permite publicar primero las tiendas pequeñas
+  // para que una tienda grande no retrase su actualización horaria.
+  const fase = (args.find((a) => a.startsWith('--fase=')) || '').split('=')[1] || '';
   let errores = 0;
   for (const { t, previo } of pendientes) {
+    if (fase) {
+      const tamano = previo ? productosPrevios(previo) : await contar(t, '').catch(() => 0);
+      const grande = tamano >= UMBRAL_GRANDE;
+      if ((fase === 'pequenas' && grande) || (fase === 'grandes' && !grande)) continue;
+    }
     const horas = frecuenciaHoras(t, previo);
     if (!forzar && !tocaActualizar(previo, horas)) {
       console.log(`[${t.slug}] al día (se actualiza cada ${horas} h; última: ${previo.actualizado})`);
@@ -113,9 +121,9 @@ ${historial.length ? `<details><summary>Historial de actualizaciones (${historia
 ${historial.map((h) => `<tr><td>${fecha(h.fecha)}</td><td>${h.skus_encontrados == null ? '—' : numero(h.skus_encontrados)}</td>` +
   `<td>${numero(h.skus)}</td><td>${h.agotados == null ? '—' : numero(h.agotados)}</td><td>${textoCambios(h)}</td></tr>`).join('\n')}
 </tbody></table></details>` : ''}`
-      : '<p class="resumen">Generando los feeds por primera vez…</p>';
-    const aviso = estado && estado.fuente_precio && estado.fuente_precio.base
-      ? `<p class="aviso">${estado.fuente_precio.base} SKUs sin impuesto en la API: revisa que el precio coincida con la tienda.</p>` : '';
+      : '<p class="resumen">Generando los feeds por primera vez… En catálogos grandes puede tardar varios minutos; los enlaces funcionarán cuando aparezca la fecha de actualización.</p>';
+    const aviso = estado && impuestoMixto(estado.fuente_precio)
+      ? `<p class="aviso">${numero(estado.fuente_precio.base)} SKUs llegan sin impuesto mientras el resto sí lo trae: revisa que su precio coincida con la tienda.</p>` : '';
     return `<section class="tienda"><header><h2>${html(t.nombre)}</h2>` +
       `<a href="${html(t.dominio)}" target="_blank" rel="noopener">${html(t.dominio.replace(/^https?:\/\//, ''))}</a></header>` +
       `${resumen}${aviso}${filas}</section>`;
@@ -274,9 +282,16 @@ async function generarTienda(t, previo) {
   console.log(`[${t.slug}] ${productos.size}/${rastreo.total} productos · SKUs: ${conteo.encontrados} encontrados, ` +
     `${items.length} publicados, ${conteo.agotados} agotados, ${conteo.incompletos} sin imagen o precio · ${segundos}s` +
     ` (${rastreo.grupos} grupos) · cambios: ${JSON.stringify(cambios)} · precio: ${JSON.stringify(fuentes)}`);
-  if (fuentes.base) {
-    console.warn(`[${t.slug}] AVISO: ${fuentes.base} SKUs sin impuesto en la API; revisa "ajuste_precio" en tiendas.json`);
+  if (impuestoMixto(fuentes)) {
+    console.warn(`[${t.slug}] AVISO: ${fuentes.base} SKUs sin impuesto mientras el resto sí lo trae; revisa su precio en la tienda`);
   }
+}
+
+// Si ningún SKU trae impuesto, la tienda publica precios con IVA incluido (común en México)
+// y el precio de VTEX ya es el del front. Solo es sospechoso cuando se mezclan ambos casos.
+function impuestoMixto(fuentes) {
+  if (!fuentes || !fuentes.base) return false;
+  return Object.keys(fuentes).some((f) => f !== 'base' && fuentes[f] > 0);
 }
 
 // Compara cada SKU con la publicación anterior (precio, oferta, stock, título, link e imágenes)
