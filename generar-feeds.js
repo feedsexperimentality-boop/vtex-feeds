@@ -55,8 +55,41 @@ async function main() {
       console.error(`[${t.slug}] ERROR: ${error.message}. Se conservan los feeds anteriores.`);
     }
   }
-  escribirIndice(tiendas.filter((t) => t.activo !== false));
+  const uso = medirEspacio();
+  escribirIndice(tiendas.filter((t) => t.activo !== false), uso);
   if (errores) process.exitCode = 1;
+}
+
+// ---------- Espacio de GitHub Pages ----------
+
+const LIMITE_SITIO = 1024 ** 3; // 1 GB por sitio de GitHub Pages
+const LIMITE_ARCHIVO = 100 * 1024 ** 2; // 100 MB por archivo en git
+const ALERTA = 0.8;
+
+// Mide lo publicado y lo guarda en uso.json; el workflow lo usa para avisar por correo.
+function medirEspacio() {
+  let bytes = 0;
+  let mayor = { archivo: '', bytes: 0 };
+  const recorrer = (dir) => {
+    for (const entrada of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entrada.name === '.git') continue;
+      const ruta = path.join(dir, entrada.name);
+      if (entrada.isDirectory()) { recorrer(ruta); continue; }
+      const tamano = fs.statSync(ruta).size;
+      bytes += tamano;
+      if (tamano > mayor.bytes) mayor = { archivo: path.relative(SALIDA, ruta).replace(/\\/g, '/'), bytes: tamano };
+    }
+  };
+  recorrer(SALIDA);
+  const uso = {
+    bytes, limite: LIMITE_SITIO, porcentaje: Math.round((bytes / LIMITE_SITIO) * 1000) / 10,
+    archivo_mayor: mayor.archivo, archivo_mayor_bytes: mayor.bytes, limite_archivo: LIMITE_ARCHIVO,
+    alerta: bytes >= LIMITE_SITIO * ALERTA || mayor.bytes >= LIMITE_ARCHIVO * 0.9,
+  };
+  escribir(path.join(SALIDA, 'uso.json'), JSON.stringify(uso, null, 2));
+  console.log(`Espacio: ${(bytes / 1024 ** 2).toFixed(1)} MB de 1024 MB (${uso.porcentaje} %) · ` +
+    `archivo mayor: ${mayor.archivo} (${(mayor.bytes / 1024 ** 2).toFixed(1)} MB)`);
+  return uso;
 }
 
 // ---------- Página principal ----------
@@ -86,7 +119,7 @@ function textoCambios(c) {
   return partes.length ? partes.join(', ') : 'Sin cambios';
 }
 
-function escribirIndice(tiendas) {
+function escribirIndice(tiendas, uso) {
   const repo = process.env.GITHUB_REPOSITORY || 'feedsexperimentality-boop/vtex-feeds';
   const [dueno, nombreRepo] = repo.split('/');
   const base = `https://${dueno}.github.io/${nombreRepo}`;
@@ -183,7 +216,11 @@ main { max-width:1040px; margin:0 auto; padding:40px 16px 72px; }
 h1 { font-size:clamp(28px, 4.6vw, 44px); line-height:1.15; font-weight:700; margin:18px 0 10px; letter-spacing:-.01em; }
 .resaltado { background:var(--degradado); -webkit-background-clip:text; background-clip:text; color:transparent; text-decoration:underline; text-decoration-color:var(--verde); text-underline-offset:6px; text-decoration-thickness:3px; }
 .hero p { color:var(--suave); max-width:640px; margin:0 auto; }
-.resumen-global { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin:0 0 28px; }
+.resumen-global { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin:0 0 28px; }
+.resumen-global small { font-size:12px; font-weight:400; color:var(--suave); }
+.barra-uso { height:6px; border-radius:999px; background:#eee; margin-top:8px; overflow:hidden; }
+.barra-uso i { display:block; height:100%; border-radius:999px; background:var(--degradado); }
+.uso.lleno .barra-uso i { background:linear-gradient(90deg, #f5a623, var(--error)); }
 .resumen-global div { background:var(--tarjeta); border:1px solid var(--borde); border-radius:var(--radio); padding:14px 16px; }
 .resumen-global span { display:block; font-size:12px; color:var(--suave); }
 .resumen-global strong { font-size:22px; font-weight:700; }
@@ -268,7 +305,12 @@ footer a { color:var(--suave); }
   <div><span>Tiendas</span><strong>${numero(tiendas.length)}</strong></div>
   <div><span>SKUs publicados</span><strong>${numero(totalPublicados)}</strong></div>
   <div><span>Última actualización</span><strong style="font-size:16px">${ultima ? fecha(ultima) : '—'}</strong></div>
+  <div class="uso${uso.alerta ? ' lleno' : ''}" title="Archivo más grande: ${html(uso.archivo_mayor)} (${(uso.archivo_mayor_bytes / 1024 ** 2).toFixed(1)} MB de 100 MB)">
+    <span>Espacio usado</span><strong style="font-size:16px">${numero(Math.round(uso.bytes / 1024 ** 2))} MB <small>de 1 GB</small></strong>
+    <div class="barra-uso"><i style="width:${Math.min(100, uso.porcentaje)}%"></i></div>
+  </div>
 </div>
+${uso.alerta ? `<p class="aviso" style="margin:-14px 0 24px">El espacio gratuito está por llenarse (${uso.porcentaje} %). Conviene pasar la tienda más grande a su propio espacio.</p>` : ''}
 ${tiendas.length ? `<div class="espacio">
 <aside class="lateral">
   <div class="lateral-cabecera"><strong>Tiendas</strong><span>${numero(tiendas.length)}</span></div>

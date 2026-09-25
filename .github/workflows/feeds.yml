@@ -14,6 +14,7 @@ permissions:
   contents: write
   pages: write
   id-token: write
+  issues: write
 
 concurrency:
   group: feeds
@@ -90,6 +91,35 @@ jobs:
         if: steps.grandes.outputs.publicar == 'si'
         with:
           artifact_name: pages-grandes
+
+      # Abre un aviso (GitHub envía un correo) cuando el espacio pasa del 80 % o un archivo
+      # se acerca a 100 MB; lo cierra cuando vuelve a la normalidad.
+      - name: Avisar si el espacio está por llenarse
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          [ -f public/uso.json ] || exit 0
+          alerta=$(jq -r '.alerta' public/uso.json)
+          porcentaje=$(jq -r '.porcentaje' public/uso.json)
+          mb=$(jq -r '(.bytes / 1048576 | floor)' public/uso.json)
+          mayor=$(jq -r '.archivo_mayor' public/uso.json)
+          mayor_mb=$(jq -r '(.archivo_mayor_bytes / 1048576 * 10 | floor) / 10' public/uso.json)
+          abierto=$(gh issue list --label espacio --state open --json number --jq '.[0].number // empty' 2>/dev/null || true)
+          if [ "$alerta" = "true" ] && [ -z "$abierto" ]; then
+            gh label create espacio --color e40014 --description "Aviso de espacio de feeds" 2>/dev/null || true
+            printf '%s\n' \
+              "El espacio gratuito de los feeds está en **${mb} MB de 1024 MB (${porcentaje} %)**." \
+              "" \
+              "Archivo más grande: \`${mayor}\` (${mayor_mb} MB; el límite por archivo es 100 MB)." \
+              "" \
+              "Opciones: generar solo los feeds que se usan en las tiendas grandes, o pasar la tienda más grande a su propio repositorio (1 GB gratis adicional)." \
+              "" \
+              "Este aviso se cierra solo cuando el espacio vuelva a un nivel normal." > aviso.md
+            gh issue create --title "⚠️ Espacio de feeds al ${porcentaje} %" --label espacio --body-file aviso.md
+          elif [ "$alerta" != "true" ] && [ -n "$abierto" ]; then
+            gh issue close "$abierto" --comment "✅ El espacio volvió a un nivel normal: ${mb} MB (${porcentaje} %)."
+          fi
 
       # Marca la ejecución en rojo (y GitHub envía correo) si alguna tienda falló.
       - name: Reportar error
