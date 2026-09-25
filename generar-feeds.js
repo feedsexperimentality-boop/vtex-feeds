@@ -745,13 +745,24 @@ function feedMeta(items, t) {
   ])]);
 }
 
+// Categoría de la taxonomía de Google: primero la definida para la categoría principal de VTEX
+// ("categorias_google": {"Bebidas": "..."}), luego la de la tienda ("google_product_category").
+function categoriaGoogle(i, t) {
+  const raiz = String(i.categoria || '').split(' > ')[0];
+  return (t.categorias_google && t.categorias_google[raiz]) || t.google_product_category || '';
+}
+
+const tresNiveles = (ruta) => String(ruta || '').split(' > ').slice(0, 3).join(' > ');
+
+// TikTok admite máximo 3 niveles en product_type y google_product_category.
 function feedTikTok(items, t) {
   const cols = ['sku_id', 'title', 'description', 'availability', 'condition', 'price', 'sale_price', 'link',
-    'image_link', 'additional_image_link', 'brand', 'item_group_id', 'product_type'];
+    'image_link', 'additional_image_link', 'brand', 'item_group_id', 'product_type', 'google_product_category'];
   return csv([cols, ...items.map((i) => [
     i.id, i.titulo, i.descripcion, i.disponible ? 'in stock' : 'out of stock', 'new',
     precio(i.precio, t.moneda), precio(i.oferta, t.moneda), i.link,
-    i.imagenes[0], i.imagenes.slice(1, 10).join(','), i.marca, i.grupo, i.categoria,
+    i.imagenes[0], i.imagenes.slice(1, 10).join(','), i.marca, i.grupo, tresNiveles(i.categoria),
+    tresNiveles(categoriaGoogle(i, t)),
   ])]);
 }
 
@@ -763,7 +774,7 @@ function feedPinterest(items, t) {
   return csv([cols, ...items.map((i) => [
     i.id, i.titulo, i.descripcion, i.link, i.imagenesPinterest[0], i.imagenesPinterest.slice(1, 11).join(','),
     precio(i.precio, t.moneda), precio(i.oferta, t.moneda), i.disponible ? 'in stock' : 'out of stock',
-    'new', i.marca, i.grupo, i.categoria, t.google_product_category || '',
+    'new', i.marca, i.grupo, i.categoria, categoriaGoogle(i, t),
   ])]);
 }
 
@@ -778,7 +789,7 @@ function feedGoogle(items, t) {
     tag('price', precio(i.precio, t.moneda)), tag('sale_price', precio(i.oferta, t.moneda)),
     tag('brand', i.marca), i.gtin ? tag('gtin', i.gtin) : tag('identifier_exists', 'no'),
     tag('item_group_id', i.grupo), tag('product_type', i.categoria),
-    tag('google_product_category', t.google_product_category),
+    tag('google_product_category', categoriaGoogle(i, t)),
     '</item>',
   ].filter(Boolean).join('\n')).join('\n');
   return '<?xml version="1.0" encoding="UTF-8"?>\n' +

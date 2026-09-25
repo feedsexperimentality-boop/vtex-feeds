@@ -9,6 +9,10 @@
     "marca": "Papa Johns",
     "descripcion_default": "Pizza deliciosa de Papa Johns",
     "ajuste_precio": 1,
+    "google_product_category": "Food, Beverages & Tobacco > Food Items",
+    "categorias_google": {
+      "Bebidas": "Food, Beverages & Tobacco > Beverages"
+    },
     "feeds": [
       "meta",
       "google",
