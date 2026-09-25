@@ -4,6 +4,7 @@
 // Uso: node generar-feeds.js [slug] [--forzar]
 'use strict';
 
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
@@ -471,11 +472,19 @@ function registrarCambios(dir, items) {
   const archivo = path.join(dir, 'huellas.json');
   const anteriores = leerJson(archivo);
   const actuales = {};
+  // Se guarda una firma corta por SKU (no el texto completo) para ocupar poco espacio.
   for (const i of items) {
-    actuales[i.id] = [i.precio, i.oferta, i.disponible, i.titulo, i.link, i.imagenes.join(' ')].join('|');
+    const datos = [i.precio, i.oferta, i.disponible, i.titulo, i.link, i.imagenes.join(' ')].join('|');
+    actuales[i.id] = crypto.createHash('sha1').update(datos).digest('base64').slice(0, 12);
   }
   escribir(archivo, JSON.stringify(actuales));
   if (!anteriores) return { primera_vez: true, nuevos: items.length, modificados: 0, eliminados: 0 };
+  // Compatibilidad: las huellas antiguas guardaban el texto completo; se convierten a firma.
+  for (const id of Object.keys(anteriores)) {
+    if (String(anteriores[id]).includes('|')) {
+      anteriores[id] = crypto.createHash('sha1').update(anteriores[id]).digest('base64').slice(0, 12);
+    }
+  }
   let nuevos = 0;
   let modificados = 0;
   for (const id of Object.keys(actuales)) {
