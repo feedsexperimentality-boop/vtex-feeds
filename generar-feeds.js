@@ -74,7 +74,7 @@ function textoCambios(c) {
   const partes = [];
   if (c.modificados) partes.push(`${c.modificados} modificados`);
   if (c.nuevos) partes.push(`${c.nuevos} nuevos`);
-  if (c.eliminados) partes.push(`${c.eliminados} eliminados`);
+  if (c.eliminados) partes.push(`${c.eliminados} retirados (agotados o despublicados)`);
   return partes.length ? partes.join(', ') : 'Sin cambios';
 }
 
@@ -101,13 +101,17 @@ function escribirIndice(tiendas) {
 <div class="act">
   <div><span>Última actualización</span><strong>${fecha(estado.actualizado)}</strong></div>
   <div><span>Próxima (aprox.)</span><strong data-proxima="${html(proximaActualizacion(estado))}">${fecha(proximaActualizacion(estado))}</strong></div>
-  <div><span>Cambios</span><strong>${textoCambios(estado.cambios)}</strong></div>
-  <div><span>SKUs</span><strong>${numero(estado.skus)} · ${numero(estado.en_stock)} en stock</strong></div>
+  <div><span>Cambios en el feed</span><strong>${textoCambios(estado.cambios)}</strong></div>
+  <div><span>Encontrados en VTEX</span><strong>${numero(estado.skus_encontrados)} SKUs · ${numero(estado.productos)} productos</strong></div>
+  <div><span>Publicados (con stock)</span><strong class="bien">${numero(estado.skus)}</strong></div>
+  <div><span>Agotados (no se envían)</span><strong>${numero(estado.agotados)}</strong></div>
 </div>
+${estado.incompletos ? `<p class="aviso">${numero(estado.incompletos)} SKUs con stock no se envían porque les falta imagen o precio en VTEX.</p>` : ''}
 <p class="resumen">Se actualiza cada ${estado.frecuencia_horas === 1 ? 'hora' : `${estado.frecuencia_horas} h`} · <a href="${base}/${t.slug}/estado.json" target="_blank">estado técnico</a></p>
 ${historial.length ? `<details><summary>Historial de actualizaciones (${historial.length})</summary><table>
-<thead><tr><th>Fecha</th><th>SKUs</th><th>En stock</th><th>Cambios</th></tr></thead><tbody>
-${historial.map((h) => `<tr><td>${fecha(h.fecha)}</td><td>${numero(h.skus)}</td><td>${numero(h.en_stock)}</td><td>${textoCambios(h)}</td></tr>`).join('\n')}
+<thead><tr><th>Fecha</th><th>Encontrados</th><th>Publicados</th><th>Agotados</th><th>Cambios</th></tr></thead><tbody>
+${historial.map((h) => `<tr><td>${fecha(h.fecha)}</td><td>${h.skus_encontrados == null ? '—' : numero(h.skus_encontrados)}</td>` +
+  `<td>${numero(h.skus)}</td><td>${h.agotados == null ? '—' : numero(h.agotados)}</td><td>${textoCambios(h)}</td></tr>`).join('\n')}
 </tbody></table></details>` : ''}`
       : '<p class="resumen">Generando los feeds por primera vez…</p>';
     const aviso = estado && estado.fuente_precio && estado.fuente_precio.base
@@ -125,8 +129,8 @@ ${historial.map((h) => `<tr><td>${fecha(h.fecha)}</td><td>${numero(h.skus)}</td>
 <meta name="robots" content="noindex">
 <title>Feeds VTEX</title>
 <style>
-:root { --fondo:#f6f7f9; --tarjeta:#fff; --texto:#1b1f24; --suave:#5b636e; --borde:#dde1e6; --acento:#1f6feb; --aviso:#9a6700; --error:#cf222e; }
-@media (prefers-color-scheme: dark) { :root { --fondo:#0d1117; --tarjeta:#161b22; --texto:#e6edf3; --suave:#9aa4af; --borde:#30363d; --acento:#4493f8; --aviso:#d29922; --error:#f85149; } }
+:root { --fondo:#f6f7f9; --tarjeta:#fff; --texto:#1b1f24; --suave:#5b636e; --borde:#dde1e6; --acento:#1f6feb; --aviso:#9a6700; --error:#cf222e; --bien:#1a7f37; }
+@media (prefers-color-scheme: dark) { :root { --fondo:#0d1117; --tarjeta:#161b22; --texto:#e6edf3; --suave:#9aa4af; --borde:#30363d; --acento:#4493f8; --aviso:#d29922; --error:#f85149; --bien:#3fb950; } }
 * { box-sizing: border-box; }
 body { margin:0; background:var(--fondo); color:var(--texto); font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
 main { max-width:880px; margin:0 auto; padding:32px 16px 64px; }
@@ -146,7 +150,8 @@ input { width:100%; min-width:0; font:13px ui-monospace, Consolas, monospace; pa
 button { font:inherit; font-size:13px; padding:7px 12px; border-radius:6px; border:1px solid var(--borde); background:var(--tarjeta); color:var(--texto); cursor:pointer; }
 button.ok { border-color:var(--acento); color:var(--acento); }
 .pie { color:var(--suave); font-size:13px; margin-top:24px; }
-.act { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin:12px 0 6px; }
+.act { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin:12px 0 6px; }
+.act strong.bien { color:var(--bien); }
 .act div { background:var(--fondo); border:1px solid var(--borde); border-radius:8px; padding:8px 10px; min-width:0; }
 .act span { display:block; color:var(--suave); font-size:12px; }
 .act strong { display:block; font-size:14px; font-weight:600; }
@@ -216,18 +221,22 @@ async function generarTienda(t, previo) {
   const fuentes = {};
   const productos = new Set();
   const skus = new Set();
+  const conteo = { encontrados: 0, agotados: 0, incompletos: 0 };
   const rastreo = await rastrear(t, (lote) => {
     for (const p of lote) {
       productos.add(p.productId);
-      agregarItems(p, t, items, skus, fuentes);
+      agregarItems(p, t, items, skus, fuentes, conteo);
     }
   });
-  if (!items.length) throw new Error('VTEX no devolvió SKUs publicables');
-  estimarImpuestoAgotados(items, fuentes);
+  if (!items.length) {
+    throw new Error(`ningún SKU con stock para publicar (${conteo.encontrados} encontrados, ${conteo.agotados} agotados)`);
+  }
 
   // Protección: una respuesta parcial de VTEX no debe vaciar el catálogo en las plataformas.
-  if (previo && previo.skus && items.length < previo.skus * 0.5) {
-    throw new Error(`solo ${items.length} SKUs frente a ${previo.skus} de la última publicación`);
+  // Se compara con los SKUs encontrados (no con los publicados) para no bloquear agotamientos reales.
+  const encontradosAntes = previo && (previo.skus_encontrados || previo.skus);
+  if (encontradosAntes && conteo.encontrados < encontradosAntes * 0.5) {
+    throw new Error(`VTEX devolvió solo ${conteo.encontrados} SKUs frente a ${encontradosAntes} de la última vez`);
   }
 
   const dir = path.join(SALIDA, t.slug);
@@ -241,8 +250,8 @@ async function generarTienda(t, previo) {
   const cambios = registrarCambios(dir, items);
   const segundos = Math.round((Date.now() - inicio) / 1000);
   const actualizado = new Date().toISOString();
-  const enStock = items.filter((i) => i.disponible).length;
-  const historial = [{ fecha: actualizado, skus: items.length, en_stock: enStock, ...cambios }]
+  const historial = [{ fecha: actualizado, skus: items.length, skus_encontrados: conteo.encontrados,
+    agotados: conteo.agotados, incompletos: conteo.incompletos, ...cambios }]
     .concat((previo && previo.historial) || []).slice(0, HISTORIAL);
   escribir(path.join(dir, 'estado.json'), JSON.stringify({
     tienda: t.nombre,
@@ -252,42 +261,22 @@ async function generarTienda(t, previo) {
     productos_vtex: rastreo.total,
     productos: productos.size,
     grupos_de_precio: rastreo.grupos,
+    skus_encontrados: conteo.encontrados,
     skus: items.length,
-    en_stock: enStock,
+    agotados: conteo.agotados,
+    incompletos: conteo.incompletos,
     cambios,
     fuente_precio: fuentes,
     feeds,
     historial,
   }, null, 2));
 
-  console.log(`[${t.slug}] ${productos.size}/${rastreo.total} productos, ${items.length} SKUs en ${segundos}s` +
+  console.log(`[${t.slug}] ${productos.size}/${rastreo.total} productos · SKUs: ${conteo.encontrados} encontrados, ` +
+    `${items.length} publicados, ${conteo.agotados} agotados, ${conteo.incompletos} sin imagen o precio · ${segundos}s` +
     ` (${rastreo.grupos} grupos) · cambios: ${JSON.stringify(cambios)} · precio: ${JSON.stringify(fuentes)}`);
   if (fuentes.base) {
     console.warn(`[${t.slug}] AVISO: ${fuentes.base} SKUs sin impuesto en la API; revisa "ajuste_precio" en tiendas.json`);
   }
-}
-
-// VTEX no calcula el impuesto de los SKUs agotados. A esos se les aplica la tarifa
-// más común de la tienda para que no aparezcan sin IVA en las plataformas.
-function estimarImpuestoAgotados(items, fuentes) {
-  const conteo = {};
-  for (const i of items) {
-    if (i.fuente === 'tax') {
-      const clave = i.factor.toFixed(4);
-      conteo[clave] = (conteo[clave] || 0) + 1;
-    }
-  }
-  const factor = Number(Object.keys(conteo).sort((a, b) => conteo[b] - conteo[a])[0]);
-  if (!(factor > 1)) return;
-  for (const i of items) {
-    if (i.fuente !== 'base' || i.disponible) continue;
-    i.precio *= factor;
-    if (i.oferta) i.oferta *= factor;
-    i.fuente = 'tax_estimado_agotado';
-    fuentes.base--;
-    fuentes.tax_estimado_agotado = (fuentes.tax_estimado_agotado || 0) + 1;
-  }
-  if (fuentes.base === 0) delete fuentes.base;
 }
 
 // Compara cada SKU con la publicación anterior (precio, oferta, stock, título, link e imágenes)
@@ -381,9 +370,12 @@ async function enParalelo(lista, limite, tarea) {
 
 // ---------- Normalización ----------
 
-function agregarItems(p, t, items, vistos, fuentes) {
+// Solo se publica lo que el cliente puede comprar en el front: con stock, precio e imagen.
+function agregarItems(p, t, items, vistos, fuentes, conteo) {
   for (const sku of p.items || []) {
     if (vistos.has(sku.itemId)) continue;
+    vistos.add(sku.itemId);
+    conteo.encontrados++;
     const seller = elegirSeller(sku.sellers || []);
     const oferta = (seller && seller.commertialOffer) || {};
     const venta = precioFront(oferta.Price, oferta, t);
@@ -405,10 +397,8 @@ function agregarItems(p, t, items, vistos, fuentes) {
       gtin: /^\d{8}$|^\d{12,14}$/.test(sku.ean || '') ? sku.ean : '',
       categoria: categoria(p),
     };
-    if (!item.titulo || !item.imagenes.length || !(item.precio > 0)) continue;
-    item.fuente = venta.fuente;
-    item.factor = oferta.Price > 0 ? venta.valor / oferta.Price : 1;
-    vistos.add(sku.itemId);
+    if (!item.disponible) { conteo.agotados++; continue; }
+    if (!item.titulo || !item.imagenes.length || !(item.precio > 0)) { conteo.incompletos++; continue; }
     fuentes[venta.fuente] = (fuentes[venta.fuente] || 0) + 1;
     items.push(item);
   }
