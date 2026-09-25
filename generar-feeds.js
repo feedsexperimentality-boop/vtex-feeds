@@ -15,6 +15,7 @@ const UMBRAL_GRANDE = 2500; // desde aquí la tienda se actualiza una vez al dí
 const PARALELO = 4;
 const PRECIO_MAXIMO = 1e9;
 const MAX_IMAGENES = 4; // principal + 3 adicionales por SKU
+const HISTORIAL = 30; // actualizaciones que se muestran en la app
 const SIN_DECIMALES = ['COP', 'CLP', 'PYG', 'JPY', 'KRW'];
 
 async function main() {
@@ -57,6 +58,26 @@ const FEEDS_INDICE = [
   ['pinterest', 'Pinterest', 'pinterest.csv'], ['google', 'Google Merchant Center', 'google.xml'],
 ];
 
+// El cron corre en el minuto 7 de cada hora; las tiendas diarias pueden correr desde las 23,5 h.
+function proximaActualizacion(estado) {
+  const horas = estado.frecuencia_horas || 1;
+  const desde = Date.parse(estado.actualizado) + (horas > 1 ? horas * 3600e3 - 30 * 60e3 : 0);
+  const proxima = new Date(desde);
+  proxima.setUTCMinutes(7, 0, 0);
+  if (proxima.getTime() <= desde) proxima.setTime(proxima.getTime() + 3600e3);
+  return proxima.toISOString();
+}
+
+function textoCambios(c) {
+  if (!c) return '—';
+  if (c.primera_vez) return 'Primera publicación';
+  const partes = [];
+  if (c.modificados) partes.push(`${c.modificados} modificados`);
+  if (c.nuevos) partes.push(`${c.nuevos} nuevos`);
+  if (c.eliminados) partes.push(`${c.eliminados} eliminados`);
+  return partes.length ? partes.join(', ') : 'Sin cambios';
+}
+
 function escribirIndice(tiendas) {
   const repo = process.env.GITHUB_REPOSITORY || 'feedsexperimentality-boop/vtex-feeds';
   const [dueno, nombreRepo] = repo.split('/');
@@ -73,16 +94,27 @@ function escribirIndice(tiendas) {
         `<input readonly value="${html(url)}" aria-label="Enlace ${nombre}">` +
         `<button type="button" data-copiar="${html(url)}">Copiar</button></div>`;
     }).join('');
-    const resumen = estado
-      ? `${estado.skus.toLocaleString('es-CO')} SKUs · ${estado.en_stock.toLocaleString('es-CO')} en stock · ` +
-        `cada ${estado.frecuencia_horas === 1 ? 'hora' : `${estado.frecuencia_horas} h`} · ` +
-        `actualizado <time datetime="${html(estado.actualizado)}">${html(estado.actualizado)}</time>`
-      : 'Generando los feeds por primera vez…';
+    const fecha = (iso) => `<time datetime="${html(iso)}">${html(iso)}</time>`;
+    const numero = (n) => Number(n || 0).toLocaleString('es-CO');
+    const historial = (estado && estado.historial) || [];
+    const resumen = estado ? `
+<div class="act">
+  <div><span>Última actualización</span><strong>${fecha(estado.actualizado)}</strong></div>
+  <div><span>Próxima (aprox.)</span><strong data-proxima="${html(proximaActualizacion(estado))}">${fecha(proximaActualizacion(estado))}</strong></div>
+  <div><span>Cambios</span><strong>${textoCambios(estado.cambios)}</strong></div>
+  <div><span>SKUs</span><strong>${numero(estado.skus)} · ${numero(estado.en_stock)} en stock</strong></div>
+</div>
+<p class="resumen">Se actualiza cada ${estado.frecuencia_horas === 1 ? 'hora' : `${estado.frecuencia_horas} h`} · <a href="${base}/${t.slug}/estado.json" target="_blank">estado técnico</a></p>
+${historial.length ? `<details><summary>Historial de actualizaciones (${historial.length})</summary><table>
+<thead><tr><th>Fecha</th><th>SKUs</th><th>En stock</th><th>Cambios</th></tr></thead><tbody>
+${historial.map((h) => `<tr><td>${fecha(h.fecha)}</td><td>${numero(h.skus)}</td><td>${numero(h.en_stock)}</td><td>${textoCambios(h)}</td></tr>`).join('\n')}
+</tbody></table></details>` : ''}`
+      : '<p class="resumen">Generando los feeds por primera vez…</p>';
     const aviso = estado && estado.fuente_precio && estado.fuente_precio.base
       ? `<p class="aviso">${estado.fuente_precio.base} SKUs sin impuesto en la API: revisa que el precio coincida con la tienda.</p>` : '';
     return `<section class="tienda"><header><h2>${html(t.nombre)}</h2>` +
       `<a href="${html(t.dominio)}" target="_blank" rel="noopener">${html(t.dominio.replace(/^https?:\/\//, ''))}</a></header>` +
-      `<p class="resumen">${resumen} · <a href="${base}/${t.slug}/estado.json" target="_blank">estado</a></p>${aviso}${filas}</section>`;
+      `${resumen}${aviso}${filas}</section>`;
   }).join('\n');
 
   escribir(path.join(SALIDA, 'index.html'), `<!DOCTYPE html>
@@ -93,8 +125,8 @@ function escribirIndice(tiendas) {
 <meta name="robots" content="noindex">
 <title>Feeds VTEX</title>
 <style>
-:root { --fondo:#f6f7f9; --tarjeta:#fff; --texto:#1b1f24; --suave:#5b636e; --borde:#dde1e6; --acento:#1f6feb; --aviso:#9a6700; }
-@media (prefers-color-scheme: dark) { :root { --fondo:#0d1117; --tarjeta:#161b22; --texto:#e6edf3; --suave:#9aa4af; --borde:#30363d; --acento:#4493f8; --aviso:#d29922; } }
+:root { --fondo:#f6f7f9; --tarjeta:#fff; --texto:#1b1f24; --suave:#5b636e; --borde:#dde1e6; --acento:#1f6feb; --aviso:#9a6700; --error:#cf222e; }
+@media (prefers-color-scheme: dark) { :root { --fondo:#0d1117; --tarjeta:#161b22; --texto:#e6edf3; --suave:#9aa4af; --borde:#30363d; --acento:#4493f8; --aviso:#d29922; --error:#f85149; } }
 * { box-sizing: border-box; }
 body { margin:0; background:var(--fondo); color:var(--texto); font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
 main { max-width:880px; margin:0 auto; padding:32px 16px 64px; }
@@ -114,6 +146,17 @@ input { width:100%; min-width:0; font:13px ui-monospace, Consolas, monospace; pa
 button { font:inherit; font-size:13px; padding:7px 12px; border-radius:6px; border:1px solid var(--borde); background:var(--tarjeta); color:var(--texto); cursor:pointer; }
 button.ok { border-color:var(--acento); color:var(--acento); }
 .pie { color:var(--suave); font-size:13px; margin-top:24px; }
+.act { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin:12px 0 6px; }
+.act div { background:var(--fondo); border:1px solid var(--borde); border-radius:8px; padding:8px 10px; min-width:0; }
+.act span { display:block; color:var(--suave); font-size:12px; }
+.act strong { display:block; font-size:14px; font-weight:600; }
+.act strong.atrasada { color:var(--error); }
+details { margin:0 0 10px; font-size:13px; }
+summary { cursor:pointer; color:var(--acento); }
+table { width:100%; border-collapse:collapse; margin-top:8px; }
+th, td { text-align:left; padding:5px 8px; border-bottom:1px solid var(--borde); }
+th { color:var(--suave); font-weight:600; }
+@media (max-width:700px) { .act { grid-template-columns:1fr 1fr; } }
 @media (max-width:600px) { .fila { grid-template-columns:1fr auto; } .plataforma { grid-column:1 / -1; } }
 </style>
 </head>
@@ -130,6 +173,13 @@ ${tarjetas || '<p>Aún no hay tiendas. Pulsa “Agregar tienda”.</p>'}
 document.querySelectorAll('time').forEach(function (t) {
   var d = new Date(t.getAttribute('datetime'));
   if (!isNaN(d)) t.textContent = d.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+});
+// Si la próxima actualización ya debió ocurrir hace más de 2 horas, se marca como atrasada.
+document.querySelectorAll('[data-proxima]').forEach(function (el) {
+  if (Date.now() - new Date(el.getAttribute('data-proxima')).getTime() > 2 * 3600e3) {
+    el.classList.add('atrasada');
+    el.insertAdjacentText('beforeend', ' · atrasada');
+  }
 });
 document.addEventListener('click', function (e) {
   var b = e.target.closest('[data-copiar]');
@@ -187,26 +237,54 @@ async function generarTienda(t, previo) {
   if (feeds.includes('tiktok')) escribir(path.join(dir, 'tiktok.csv'), feedTikTok(items, t));
   if (feeds.includes('pinterest')) escribir(path.join(dir, 'pinterest.csv'), feedPinterest(items, t));
 
+  const cambios = registrarCambios(dir, items);
   const segundos = Math.round((Date.now() - inicio) / 1000);
+  const actualizado = new Date().toISOString();
+  const enStock = items.filter((i) => i.disponible).length;
+  const historial = [{ fecha: actualizado, skus: items.length, en_stock: enStock, ...cambios }]
+    .concat((previo && previo.historial) || []).slice(0, HISTORIAL);
   escribir(path.join(dir, 'estado.json'), JSON.stringify({
     tienda: t.nombre,
-    actualizado: new Date().toISOString(),
+    actualizado,
     frecuencia_horas: frecuenciaHoras(t, { productos: productos.size }),
     duracion_segundos: segundos,
     productos_vtex: rastreo.total,
     productos: productos.size,
     grupos_de_precio: rastreo.grupos,
     skus: items.length,
-    en_stock: items.filter((i) => i.disponible).length,
+    en_stock: enStock,
+    cambios,
     fuente_precio: fuentes,
     feeds,
+    historial,
   }, null, 2));
 
   console.log(`[${t.slug}] ${productos.size}/${rastreo.total} productos, ${items.length} SKUs en ${segundos}s` +
-    ` (${rastreo.grupos} grupos) · precio: ${JSON.stringify(fuentes)}`);
+    ` (${rastreo.grupos} grupos) · cambios: ${JSON.stringify(cambios)} · precio: ${JSON.stringify(fuentes)}`);
   if (fuentes.base) {
     console.warn(`[${t.slug}] AVISO: ${fuentes.base} SKUs sin impuesto en la API; revisa "ajuste_precio" en tiendas.json`);
   }
+}
+
+// Compara cada SKU con la publicación anterior (precio, oferta, stock, título, link e imágenes)
+// para mostrar en la app cuántos cambiaron realmente.
+function registrarCambios(dir, items) {
+  const archivo = path.join(dir, 'huellas.json');
+  const anteriores = leerJson(archivo);
+  const actuales = {};
+  for (const i of items) {
+    actuales[i.id] = [i.precio, i.oferta, i.disponible, i.titulo, i.link, i.imagenes.join(' ')].join('|');
+  }
+  escribir(archivo, JSON.stringify(actuales));
+  if (!anteriores) return { primera_vez: true, nuevos: items.length, modificados: 0, eliminados: 0 };
+  let nuevos = 0;
+  let modificados = 0;
+  for (const id of Object.keys(actuales)) {
+    if (!(id in anteriores)) nuevos++;
+    else if (anteriores[id] !== actuales[id]) modificados++;
+  }
+  const eliminados = Object.keys(anteriores).filter((id) => !(id in actuales)).length;
+  return { nuevos, modificados, eliminados };
 }
 
 // ---------- VTEX ----------
