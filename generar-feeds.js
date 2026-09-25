@@ -19,18 +19,28 @@ const MAX_IMAGENES = 4; // principal + 3 adicionales por SKU
 const HISTORIAL = 30; // actualizaciones que se muestran en la app
 const SIN_DECIMALES = ['COP', 'CLP', 'PYG', 'JPY', 'KRW'];
 
+// Repositorio principal (app + tiendas pequeñas) y espacios adicionales de 1 GB para tiendas grandes.
+const DUENO = (process.env.GITHUB_REPOSITORY_OWNER || process.env.GITHUB_REPOSITORY || 'feedsexperimentality-boop').split('/')[0];
+const REPO_PRINCIPAL = 'vtex-feeds';
+const baseEspacio = (n) => `https://${DUENO}.github.io/${n ? `${REPO_PRINCIPAL}-espacio-${n}` : REPO_PRINCIPAL}`;
+const espacioDe = (t) => Number(t.espacio) || 0;
+
 async function main() {
   const args = process.argv.slice(2);
   const forzar = args.includes('--forzar');
   const filtro = args.find((a) => !a.startsWith('--'));
-  const tiendas = JSON.parse(fs.readFileSync(path.join(RAIZ, 'tiendas.json'), 'utf8'));
+  // --espacio=N: este proceso corre en el repositorio "vtex-feeds-espacio-N" y solo genera sus tiendas.
+  const espacio = Number((args.find((a) => a.startsWith('--espacio=')) || '').split('=')[1]) || 0;
+  const tiendas = JSON.parse(fs.readFileSync(path.join(RAIZ, 'tiendas.json'), 'utf8').replace(/^﻿/, ''));
   fs.mkdirSync(SALIDA, { recursive: true });
   fs.writeFileSync(path.join(SALIDA, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
   fs.writeFileSync(path.join(SALIDA, '.nojekyll'), '');
+  const propias = tiendas.filter((t) => t.activo !== false && espacioDe(t) === espacio);
+  limpiarTiendasAjenas(propias);
 
   // Las tiendas pequeñas van primero para que su actualización horaria no espere a las grandes.
-  const pendientes = tiendas
-    .filter((t) => t.activo !== false && (!filtro || t.slug === filtro))
+  const pendientes = propias
+    .filter((t) => !filtro || t.slug === filtro)
     .map((t) => ({ t, previo: leerJson(path.join(SALIDA, t.slug, 'estado.json')) }))
     .sort((a, b) => productosPrevios(a.previo) - productosPrevios(b.previo));
 
@@ -56,9 +66,58 @@ async function main() {
       console.error(`[${t.slug}] ERROR: ${error.message}. Se conservan los feeds anteriores.`);
     }
   }
-  const uso = medirEspacio();
-  escribirIndice(tiendas.filter((t) => t.activo !== false), uso);
+  const uso = medirEspacio(espacio);
+  if (!espacio) {
+    // La app vive en el repositorio principal y reúne el estado de todos los espacios.
+    const activas = tiendas.filter((t) => t.activo !== false);
+    const remotos = await leerEstadosRemotos(activas.filter((t) => espacioDe(t) > 0));
+    uso.espacios = [{ numero: 0, bytes: uso.bytes, porcentaje: uso.porcentaje }]
+      .concat(await leerUsoEspacios(leerEspacios()));
+    uso.alerta = uso.alerta || uso.espacios.some((e) => e.alerta);
+    escribir(path.join(SALIDA, 'uso.json'), JSON.stringify(uso, null, 2));
+    escribirIndice(activas, uso, remotos);
+  }
   if (errores) process.exitCode = 1;
+}
+
+// Borra carpetas de tiendas que ya no pertenecen a este espacio (movidas o eliminadas).
+function limpiarTiendasAjenas(propias) {
+  const slugs = new Set(propias.map((t) => t.slug));
+  for (const entrada of fs.readdirSync(SALIDA, { withFileTypes: true })) {
+    if (entrada.isDirectory() && /^[a-z0-9-]+$/.test(entrada.name) && !slugs.has(entrada.name)) {
+      fs.rmSync(path.join(SALIDA, entrada.name), { recursive: true, force: true });
+      console.log(`[${entrada.name}] carpeta retirada de este espacio`);
+    }
+  }
+}
+
+function leerEspacios() {
+  const config = leerJson(path.join(RAIZ, 'espacios.json'));
+  return (config && config.espacios) || [];
+}
+
+async function leerJsonRemoto(url) {
+  try {
+    const r = await fetch(`${url}?t=${Date.now()}`, { headers: { Accept: 'application/json' } });
+    return r.ok ? await r.json() : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function leerEstadosRemotos(tiendas) {
+  const estados = {};
+  await Promise.all(tiendas.map(async (t) => {
+    estados[t.slug] = await leerJsonRemoto(`${baseEspacio(espacioDe(t))}/${t.slug}/estado.json`);
+  }));
+  return estados;
+}
+
+async function leerUsoEspacios(numeros) {
+  return Promise.all(numeros.map(async (n) => {
+    const uso = await leerJsonRemoto(`${baseEspacio(n)}/uso.json`);
+    return { numero: n, bytes: (uso && uso.bytes) || 0, porcentaje: (uso && uso.porcentaje) || 0, alerta: Boolean(uso && uso.alerta) };
+  }));
 }
 
 // ---------- Espacio de GitHub Pages ----------
@@ -68,7 +127,7 @@ const LIMITE_ARCHIVO = 100 * 1024 ** 2; // 100 MB por archivo en git
 const ALERTA = 0.8;
 
 // Mide lo publicado y lo guarda en uso.json; el workflow lo usa para avisar por correo.
-function medirEspacio() {
+function medirEspacio(espacio) {
   let bytes = 0;
   let mayor = { archivo: '', bytes: 0 };
   const recorrer = (dir) => {
@@ -83,7 +142,7 @@ function medirEspacio() {
   };
   recorrer(SALIDA);
   const uso = {
-    bytes, limite: LIMITE_SITIO, porcentaje: Math.round((bytes / LIMITE_SITIO) * 1000) / 10,
+    espacio, bytes, limite: LIMITE_SITIO, porcentaje: Math.round((bytes / LIMITE_SITIO) * 1000) / 10,
     archivo_mayor: mayor.archivo, archivo_mayor_bytes: mayor.bytes, limite_archivo: LIMITE_ARCHIVO,
     alerta: bytes >= LIMITE_SITIO * ALERTA || mayor.bytes >= LIMITE_ARCHIVO * 0.9,
   };
@@ -120,21 +179,24 @@ function textoCambios(c) {
   return partes.length ? partes.join(', ') : 'Sin cambios';
 }
 
-function escribirIndice(tiendas, uso) {
-  const repo = process.env.GITHUB_REPOSITORY || 'feedsexperimentality-boop/vtex-feeds';
-  const [dueno, nombreRepo] = repo.split('/');
-  const base = `https://${dueno}.github.io/${nombreRepo}`;
+function escribirIndice(tiendas, uso, remotos) {
+  const repo = `${DUENO}/${REPO_PRINCIPAL}`;
   const html = (v) => String(v == null ? '' : v)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
   const fecha = (iso) => `<time datetime="${html(iso)}">${html(iso)}</time>`;
   const numero = (n) => Number(n || 0).toLocaleString('es-CO');
-  const estados = tiendas.map((t) => leerJson(path.join(SALIDA, t.slug, 'estado.json')));
+  const estados = tiendas.map((t) => (espacioDe(t)
+    ? remotos[t.slug] : leerJson(path.join(SALIDA, t.slug, 'estado.json'))));
+  const capacidad = uso.espacios.length * LIMITE_SITIO;
+  const usado = uso.espacios.reduce((s, e) => s + e.bytes, 0);
+  const masLleno = uso.espacios.reduce((a, e) => (e.porcentaje > a.porcentaje ? e : a), uso.espacios[0]);
   const totalPublicados = estados.reduce((s, e) => s + ((e && e.skus) || 0), 0);
   const ultima = estados.map((e) => e && e.actualizado).filter(Boolean).sort().pop();
 
   const tarjetas = tiendas.map((t, indice) => {
     const estado = estados[indice];
+    const base = baseEspacio(espacioDe(t));
     const feeds = t.feeds || FEEDS_INDICE.map((f) => f[0]);
     const filas = FEEDS_INDICE.filter(([id]) => feeds.includes(id)).map(([id, nombre, archivo]) => {
       const url = `${base}/${t.slug}/${archivo}`;
@@ -306,12 +368,12 @@ footer a { color:var(--suave); }
   <div><span>Tiendas</span><strong>${numero(tiendas.length)}</strong></div>
   <div><span>SKUs publicados</span><strong>${numero(totalPublicados)}</strong></div>
   <div><span>Última actualización</span><strong style="font-size:16px">${ultima ? fecha(ultima) : '—'}</strong></div>
-  <div class="uso${uso.alerta ? ' lleno' : ''}" title="Archivo más grande: ${html(uso.archivo_mayor)} (${(uso.archivo_mayor_bytes / 1024 ** 2).toFixed(1)} MB de 100 MB)">
-    <span>Espacio usado</span><strong style="font-size:16px">${numero(Math.round(uso.bytes / 1024 ** 2))} MB <small>de 1 GB</small></strong>
-    <div class="barra-uso"><i style="width:${Math.min(100, uso.porcentaje)}%"></i></div>
+  <div class="uso${uso.alerta ? ' lleno' : ''}" title="${html(uso.espacios.map((e) => `${e.numero ? `Espacio ${e.numero}` : 'Principal'}: ${e.porcentaje} %`).join(' · '))}">
+    <span>Espacio usado</span><strong style="font-size:16px">${numero(Math.round(usado / 1024 ** 2))} MB <small>de ${numero(capacidad / 1024 ** 3)} GB</small></strong>
+    <div class="barra-uso"><i style="width:${Math.min(100, (usado / capacidad) * 100).toFixed(1)}%"></i></div>
   </div>
 </div>
-${uso.alerta ? `<p class="aviso" style="margin:-14px 0 24px">El espacio gratuito está por llenarse (${uso.porcentaje} %). Conviene pasar la tienda más grande a su propio espacio.</p>` : ''}
+${uso.alerta ? `<p class="aviso" style="margin:-14px 0 24px">Un espacio está por llenarse (${masLleno.numero ? `espacio ${masLleno.numero}` : 'principal'}: ${masLleno.porcentaje} %). Hay que agregar un espacio nuevo para las próximas tiendas grandes.</p>` : ''}
 ${tiendas.length ? `<div class="espacio">
 <aside class="lateral">
   <div class="lateral-cabecera"><strong>Tiendas</strong><span>${numero(tiendas.length)}</span></div>

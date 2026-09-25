@@ -1,0 +1,67 @@
+name: Feeds VTEX (espacio __N__)
+
+# Espacio adicional de 1 GB para tiendas grandes. El código y la lista de tiendas
+# se descargan del repositorio principal (vtex-feeds), así que aquí no hay nada que editar.
+on:
+  schedule:
+    - cron: '17 * * * *'   # cada hora, minuto 17 (UTC); cada tienda grande se regenera una vez al día
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: feeds
+  cancel-in-progress: false
+
+jobs:
+  feeds:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    environment:
+      name: github-pages
+    env:
+      ESPACIO: '__N__'
+      PRINCIPAL: https://raw.githubusercontent.com/${{ github.repository_owner }}/vtex-feeds/main
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Traer el código y las tiendas del repositorio principal
+        run: |
+          mkdir -p .github
+          for archivo in generar-feeds.js tiendas.json espacios.json .github/guardar-rama-feeds.sh; do
+            curl -fsSL "$PRINCIPAL/$archivo?t=$(date +%s)" -o "$archivo"
+          done
+
+      - name: Recuperar feeds anteriores
+        run: |
+          git init -q
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          mkdir -p public
+          if git fetch -q --depth=1 origin feeds; then git archive FETCH_HEAD | tar -x -C public; fi
+
+      - name: Generar tiendas de este espacio
+        id: generar
+        continue-on-error: true
+        run: node generar-feeds.js --espacio=$ESPACIO
+
+      - name: Guardar copia
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash .github/guardar-rama-feeds.sh
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - uses: actions/deploy-pages@v4
+
+      - name: Reportar error
+        if: steps.generar.outcome == 'failure'
+        run: |
+          echo "Una o más tiendas fallaron; se publicaron sus feeds anteriores."
+          exit 1

@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ARCHIVO = path.join(__dirname, 'tiendas.json');
+const UMBRAL_GRANDE = 2500;
 const MONEDA_POR_DOMINIO = [
   [/\.com\.co$|\.co$/, 'COP'], [/\.com\.mx$|\.mx$/, 'MXN'], [/\.com\.pe$|\.pe$/, 'PEN'],
   [/\.cl$/, 'CLP'], [/\.com\.ar$|\.ar$/, 'ARS'], [/\.com\.br$|\.br$/, 'BRL'],
@@ -25,14 +26,15 @@ async function main() {
   const html = await descargar(url.origin);
   if (!html) return fallar(`No se pudo abrir ${url.origin}`);
 
-  const account = await detectarCuenta(html);
+  const { cuenta: account, total } = await detectarCuenta(html);
   if (!account) return fallar(`No se encontró una tienda VTEX pública en ${url.origin}`);
 
   const tiendas = JSON.parse(fs.readFileSync(ARCHIVO, 'utf8').replace(/^﻿/, ''));
   const dominio = url.origin;
   const existente = tiendas.find((t) => t.account === account || mismoDominio(t.dominio, dominio));
   if (existente) {
-    return terminar({ ok: true, nueva: false, slug: existente.slug, nombre: existente.nombre, account });
+    return terminar({ ok: true, nueva: false, slug: existente.slug, nombre: existente.nombre, account,
+      productos: total, espacio: Number(existente.espacio) || 0, base: baseEspacio(Number(existente.espacio) || 0) });
   }
 
   const segmento = await obtenerSegmento(account);
@@ -49,9 +51,39 @@ async function main() {
     ajuste_precio: 1,
     feeds: ['meta', 'google', 'tiktok', 'pinterest'],
   };
+  // Las tiendas grandes van a un espacio propio de 1 GB: el que tenga más lugar libre.
+  if (total >= UMBRAL_GRANDE) {
+    const espacio = await elegirEspacio(tiendas);
+    if (!espacio) return fallar('Todos los espacios para tiendas grandes están casi llenos. Hay que crear uno nuevo antes de agregar esta tienda.');
+    tienda.espacio = espacio;
+  }
   tiendas.push(tienda);
   fs.writeFileSync(ARCHIVO, JSON.stringify(tiendas, null, 2) + '\n', 'utf8');
-  terminar({ ok: true, nueva: true, slug, nombre: tienda.nombre, account, moneda: tienda.moneda });
+  const espacio = tienda.espacio || 0;
+  terminar({ ok: true, nueva: true, slug, nombre: tienda.nombre, account, moneda: tienda.moneda,
+    productos: total, espacio, base: baseEspacio(espacio) });
+}
+
+// Elige el espacio con menos uso, sumando lo que ya se reservó para tiendas recién agregadas.
+async function elegirEspacio(tiendas) {
+  const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'espacios.json'), 'utf8'));
+  const opciones = await Promise.all((config.espacios || []).map(async (n) => {
+    let bytes = 0;
+    try {
+      const r = await fetch(`${baseEspacio(n)}/uso.json?t=${Date.now()}`);
+      if (r.ok) bytes = (await r.json()).bytes || 0;
+    } catch (_) { /* espacio aún sin publicar */ }
+    // Una tienda asignada que aún no publica se cuenta como 200 MB para no amontonarlas.
+    const pendientes = tiendas.filter((t) => Number(t.espacio) === n).length;
+    return { n, bytes: Math.max(bytes, pendientes * 200 * 1024 ** 2) };
+  }));
+  const libres = opciones.filter((o) => o.bytes < 0.7 * 1024 ** 3).sort((a, b) => a.bytes - b.bytes);
+  return libres.length ? libres[0].n : 0;
+}
+
+function baseEspacio(n) {
+  const dueno = (process.env.GITHUB_REPOSITORY_OWNER || 'feedsexperimentality-boop');
+  return `https://${dueno}.github.io/vtex-feeds${n ? `-espacio-${n}` : ''}`;
 }
 
 function normalizarUrl(texto) {
@@ -88,10 +120,10 @@ async function detectarCuenta(html) {
       const r = await fetch(`https://${cuenta}.vtexcommercestable.com.br/api/catalog_system/pub/products/search?_from=0&_to=0`,
         { headers: { Accept: 'application/json' } });
       const total = Number(String(r.headers.get('resources') || '').split('/')[1]);
-      if (r.ok && total > 0) return cuenta;
+      if (r.ok && total > 0) return { cuenta, total };
     } catch (_) { /* se prueba el siguiente candidato */ }
   }
-  return '';
+  return { cuenta: '', total: 0 };
 }
 
 // Segmento público por defecto de la cuenta: moneda, país y canal de venta.

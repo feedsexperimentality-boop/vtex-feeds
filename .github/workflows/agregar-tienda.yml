@@ -59,7 +59,14 @@ jobs:
           fi
           gh workflow run feeds.yml -f tienda="$slug"
 
-          base="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/$slug"
+          base="$(jq -r '.base' <<<"$resultado")/$slug"
+          espacio=$(jq -r '.espacio // 0' <<<"$resultado")
+          productos=$(jq -r '.productos // 0' <<<"$resultado")
+          if [ "$espacio" != "0" ]; then
+            espera="Es una tienda grande (**$productos productos**), así que tiene su propio espacio de 1 GB (espacio $espacio). Los enlaces funcionarán **dentro de la próxima hora**, cuando termine su primera generación."
+          else
+            espera="Los enlaces funcionan en **2 a 5 minutos**."
+          fi
           cat > respuesta.md <<EOF
           ✅ $estado
 
@@ -70,7 +77,7 @@ jobs:
           | Pinterest | $base/pinterest.csv |
           | Google Merchant Center | $base/google.xml |
 
-          Los enlaces funcionan en **2 a 5 minutos** (en tiendas muy grandes puede tardar más). Para comprobarlo abre el estado: $base/estado.json
+          $espera Para comprobarlo abre el estado: $base/estado.json
 
           Menos de 2.500 productos: se actualiza cada hora. Desde 2.500 productos: una vez al día.
           EOF

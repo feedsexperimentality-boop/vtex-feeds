@@ -37,6 +37,7 @@
     "slug": "lamarina",
     "nombre": "La Marina",
     "account": "lamarinamx",
+    "espacio": 1,
     "dominio": "https://www.lamarina.com.mx",
     "moneda": "MXN",
     "sc": 2,
