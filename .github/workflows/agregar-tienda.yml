@@ -9,17 +9,22 @@ permissions:
   issues: write
   actions: write
 
+# Una solicitud a la vez para no pisar cambios en tiendas.json.
+concurrency:
+  group: tiendas
+  cancel-in-progress: false
+
 jobs:
   # Solicitudes de personas sin permiso: se responden y se cierran sin hacer cambios.
   rechazar:
-    if: contains(github.event.issue.labels.*.name, 'nueva-tienda') && github.event.issue.user.login != github.repository_owner
+    if: (contains(github.event.issue.labels.*.name, 'nueva-tienda') || contains(github.event.issue.labels.*.name, 'excluir')) && github.event.issue.user.login != github.repository_owner
     runs-on: ubuntu-latest
     steps:
       - env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NUMERO: ${{ github.event.issue.number }}
         run: |
-          gh issue comment "$NUMERO" --repo "$GITHUB_REPOSITORY" --body "🔒 Solo el equipo de Experimentality puede agregar tiendas. Si necesitas una, pídesela a quien administra los feeds."
+          gh issue comment "$NUMERO" --repo "$GITHUB_REPOSITORY" --body "🔒 Solo el equipo de Experimentality puede agregar tiendas o cambiar exclusiones. Pídeselo a quien administra los feeds."
           gh issue close "$NUMERO" --repo "$GITHUB_REPOSITORY" --reason "not planned"
 
   agregar:
@@ -66,6 +71,7 @@ jobs:
             git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
             git add tiendas.json
             git commit -qm "Agregar tienda $slug"
+            git pull -q --rebase
             git push -q
             estado="Tienda **$tienda** agregada (cuenta VTEX \`$account\`). Los feeds se están generando."
           else

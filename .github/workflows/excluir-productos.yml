@@ -1,0 +1,75 @@
+name: Excluir productos
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
+# Una solicitud a la vez para no pisar cambios en tiendas.json.
+concurrency:
+  group: tiendas
+  cancel-in-progress: false
+
+jobs:
+  exclusiones:
+    if: contains(github.event.issue.labels.*.name, 'excluir') && github.event.issue.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Aplicar exclusiones
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CUERPO: ${{ github.event.issue.body }}
+          NUMERO: ${{ github.event.issue.number }}
+        run: |
+          resultado=$(node exclusiones.js | tail -n 1 || true)
+          ok=$(jq -r '.ok' <<<"$resultado" 2>/dev/null || echo false)
+
+          if [ "$ok" != "true" ]; then
+            error=$(jq -r '.error // empty' <<<"$resultado" 2>/dev/null)
+            printf '❌ %s\n\nRevisa los datos y vuelve a crear la solicitud.\n' "${error:-No se pudo procesar la solicitud.}" > respuesta.md
+            gh issue comment "$NUMERO" --body-file respuesta.md
+            gh issue close "$NUMERO" --reason "not planned"
+            exit 0
+          fi
+
+          slug=$(jq -r '.slug' <<<"$resultado")
+          tienda=$(jq -r '.nombre' <<<"$resultado")
+          espacio=$(jq -r '.espacio' <<<"$resultado")
+          resumen=$(jq -r '.resumen' <<<"$resultado")
+          if ! git diff --quiet tiendas.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+            git add tiendas.json
+            git commit -qm "Exclusiones de $slug"
+            git pull -q --rebase
+            git push -q
+          fi
+          # Regenera la tienda (si vive en el principal) y la app, que muestra las reglas.
+          gh workflow run feeds.yml -f tienda="$slug"
+          if [ "$espacio" = "0" ]; then
+            espera="Los feeds se actualizan en **2 a 5 minutos**."
+          else
+            espera="Es una tienda grande (espacio $espacio): los feeds se actualizan **dentro de la próxima hora**."
+          fi
+
+          {
+            echo "✅ **$tienda** — $resumen"
+            echo
+            echo "$espera"
+            echo
+            echo "**Exclusiones activas de la tienda:**"
+            jq -r 'if (.reglas | length) == 0 then "- Ninguna" else .reglas[] | "- " + . end' <<<"$resultado"
+          } > respuesta.md
+          gh issue comment "$NUMERO" --body-file respuesta.md
+          gh issue close "$NUMERO" --reason completed

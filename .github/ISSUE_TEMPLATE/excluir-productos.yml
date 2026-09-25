@@ -1,0 +1,61 @@
+name: Excluir productos
+description: Saca categorías, colecciones, marcas, SKUs o productos de uno o varios feeds (o vuelve a incluirlos).
+title: "Exclusiones"
+labels: ["excluir"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Los productos excluidos dejan de enviarse a las plataformas elegidas. Por ejemplo: excluir la categoría **Bebidas > Cervezas** solo de **Google Merchant Center**.
+  - type: input
+    id: tienda
+    attributes:
+      label: Tienda
+      description: Nombre, dominio o identificador de la tienda (como aparece en la app).
+      placeholder: papajohns
+    validations:
+      required: true
+  - type: dropdown
+    id: accion
+    attributes:
+      label: Acción
+      options:
+        - Excluir
+        - Volver a incluir
+      default: 0
+    validations:
+      required: true
+  - type: dropdown
+    id: tipo
+    attributes:
+      label: Qué quieres excluir
+      options:
+        - Categoría (nombre como en VTEX, ej. Bebidas > Cervezas, o su ID)
+        - Colección (nombre o ID de la colección en VTEX)
+        - Marca (nombre o ID)
+        - SKU (ID del SKU)
+        - Producto (ID del producto; incluye todos sus SKUs)
+      default: 0
+    validations:
+      required: true
+  - type: textarea
+    id: valores
+    attributes:
+      label: Valores
+      description: >-
+        Uno por línea. Puedes pegar una columna copiada de Excel, o arrastrar aquí un archivo
+        .csv o .txt con los valores en la primera columna (Excel → Guardar como → CSV).
+      placeholder: |
+        Bebidas > Cervezas
+    validations:
+      required: true
+  - type: checkboxes
+    id: plataformas
+    attributes:
+      label: Plataformas
+      description: Si no marcas ninguna, aplica a todas.
+      options:
+        - label: Meta
+        - label: TikTok
+        - label: Pinterest
+        - label: Google Merchant Center

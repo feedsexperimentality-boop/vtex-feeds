@@ -55,7 +55,9 @@ async function main() {
       if ((fase === 'pequenas' && grande) || (fase === 'grandes' && !grande)) continue;
     }
     const horas = frecuenciaHoras(t, previo);
-    if (!forzar && !tocaActualizar(previo, horas)) {
+    // Un cambio en la configuración de la tienda (exclusiones, categorías…) se aplica en la siguiente hora.
+    const configCambio = previo && previo.config !== huellaConfig(t);
+    if (!forzar && !configCambio && !tocaActualizar(previo, horas)) {
       console.log(`[${t.slug}] al día (se actualiza cada ${horas} h; última: ${previo.actualizado})`);
       continue;
     }
@@ -179,6 +181,44 @@ function textoCambios(c) {
   return partes.length ? partes.join(', ') : 'Sin cambios';
 }
 
+const TIPOS_EXCLUSION = { categoria: 'Categoría', coleccion: 'Colección', marca: 'Marca', sku: 'SKU', producto: 'Producto' };
+const NOMBRES_FEED = { meta: 'Meta', tiktok: 'TikTok', pinterest: 'Pinterest', google: 'Google' };
+
+function bloqueExclusiones(t, estado, repo, html, numero) {
+  const reglas = t.exclusiones || [];
+  const formulario = `https://github.com/${repo}/issues/new?template=excluir-productos.yml&tienda=${encodeURIComponent(t.slug)}`;
+  const pendiente = estado && estado.config !== huellaConfig(t);
+  const destino = (r) => (r.feeds && r.feeds.length ? r.feeds.map((f) => NOMBRES_FEED[f] || f).join(', ') : 'Todos los feeds');
+  // SKUs y productos se agrupan (pueden ser miles); el resto se lista una por una.
+  const grupos = new Map();
+  const filas = [];
+  for (const r of reglas) {
+    if (r.tipo === 'sku' || r.tipo === 'producto') {
+      const k = `${r.tipo}|${destino(r)}`;
+      if (!grupos.has(k)) grupos.set(k, { tipo: r.tipo, destino: destino(r), valores: [] });
+      grupos.get(k).valores.push(r.valor);
+    } else {
+      filas.push(`<li><span class="chip">${TIPOS_EXCLUSION[r.tipo] || html(r.tipo)}</span>` +
+        `<span class="valor">${html(r.valor)}</span><small>${destino(r)}</small></li>`);
+    }
+  }
+  for (const g of grupos.values()) {
+    const vista = g.valores.slice(0, 40).map(html).join(', ') + (g.valores.length > 40 ? ` y ${numero(g.valores.length - 40)} más` : '');
+    filas.push(`<li><span class="chip">${TIPOS_EXCLUSION[g.tipo]}</span><span class="valor">${numero(g.valores.length)} ` +
+      `${g.tipo === 'sku' ? 'SKUs' : 'productos'}</span><small>${g.destino}</small>` +
+      `<details class="ids"><summary>ver</summary><span>${vista}</span></details></li>`);
+  }
+  const lista = reglas.length
+    ? `<ul class="reglas">${filas.join('')}</ul>`
+    : '<p class="sutil">Sin exclusiones: se envían todos los productos con stock.</p>';
+  return `<div class="exclusiones">
+  <div class="excl-cabecera"><strong>Exclusiones${reglas.length ? ` (${reglas.length})` : ''}</strong>
+  <a class="enlace" href="${formulario}" target="_blank" rel="noopener">+ Excluir o volver a incluir</a></div>
+  ${pendiente ? '<p class="sutil">⏳ Hay cambios en las exclusiones que se aplican en la próxima actualización.</p>' : ''}
+  ${lista}
+</div>`;
+}
+
 function escribirIndice(tiendas, uso, remotos) {
   const repo = `${DUENO}/${REPO_PRINCIPAL}`;
   const html = (v) => String(v == null ? '' : v)
@@ -198,9 +238,11 @@ function escribirIndice(tiendas, uso, remotos) {
     const estado = estados[indice];
     const base = baseEspacio(espacioDe(t));
     const feeds = t.feeds || FEEDS_INDICE.map((f) => f[0]);
+    const excluidos = (estado && estado.excluidos) || {};
     const filas = FEEDS_INDICE.filter(([id]) => feeds.includes(id)).map(([id, nombre, archivo]) => {
       const url = `${base}/${t.slug}/${archivo}`;
-      return `<div class="feed"><span class="plataforma"><i class="marca marca-${id}">${nombre[0]}</i>${nombre}</span>` +
+      const fuera = excluidos[id] ? `<small class="fuera">−${numero(excluidos[id])}</small>` : '';
+      return `<div class="feed"><span class="plataforma"><i class="marca marca-${id}">${nombre[0]}</i>${nombre}${fuera}</span>` +
         `<input readonly value="${html(url)}" aria-label="Enlace ${nombre}">` +
         `<button type="button" class="copiar" data-copiar="${html(url)}">Copiar</button></div>`;
     }).join('');
@@ -218,6 +260,7 @@ function escribirIndice(tiendas, uso, remotos) {
 ${estado.incompletos ? `<p class="aviso">${numero(estado.incompletos)} SKUs con stock no se envían porque les falta imagen o precio en VTEX.</p>` : ''}
 ${impuestoMixto(estado.fuente_precio) ? `<p class="aviso">${numero(estado.fuente_precio.base)} SKUs llegan sin impuesto mientras el resto sí lo trae: revisa que su precio coincida con la tienda.</p>` : ''}
 <div class="feeds">${filas}</div>
+${bloqueExclusiones(t, estado, repo, html, numero)}
 <div class="pie-tarjeta">
 ${historial.length ? `<details><summary>Historial de actualizaciones (${historial.length})</summary><div class="tabla"><table>
 <thead><tr><th>Fecha</th><th>Encontrados</th><th>Publicados</th><th>Agotados</th><th>Cambios</th></tr></thead><tbody>
@@ -318,6 +361,19 @@ input { width:100%; min-width:0; font:13px ui-monospace, "Cascadia Code", Consol
 .copiar { font:inherit; font-size:13px; font-weight:500; padding:8px 14px; border-radius:8px; border:1px solid var(--borde); background:#fff; cursor:pointer; transition:border-color .15s, color .15s; }
 .copiar:hover { border-color:var(--verde); }
 .copiar.ok { background:var(--verde-suave); border-color:var(--verde); color:var(--verde-texto); }
+.fuera { font-size:11px; font-weight:600; color:var(--aviso); background:var(--aviso-fondo); border-radius:999px; padding:1px 7px; }
+.exclusiones { margin-top:12px; border:1px dashed var(--borde); border-radius:8px; padding:10px 12px; font-size:13px; }
+.excl-cabecera { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.enlace { color:#0a7fa3; font-weight:500; text-decoration:none; white-space:nowrap; }
+.enlace:hover { text-decoration:underline; }
+.sutil { color:var(--suave); margin:6px 0 0; }
+.reglas { list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:6px; }
+.reglas li { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.reglas .valor { font-weight:500; }
+.reglas small { color:var(--suave); }
+.ids { flex-basis:100%; }
+.ids summary { font-size:12px; }
+.ids span { display:block; margin-top:4px; font:12px ui-monospace, Consolas, monospace; color:var(--suave); word-break:break-all; }
 .pie-tarjeta { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-top:10px; font-size:13px; }
 .tecnico { color:var(--suave); white-space:nowrap; }
 details { flex:1; min-width:0; }
@@ -450,6 +506,44 @@ function frecuenciaHoras(t, previo) {
   return productosPrevios(previo) >= UMBRAL_GRANDE ? 24 : 1;
 }
 
+function huellaConfig(t) {
+  return crypto.createHash('sha1').update(JSON.stringify(t)).digest('base64').slice(0, 12);
+}
+
+// ---------- Exclusiones ----------
+// Reglas por tienda: { "tipo": "categoria|coleccion|marca|sku|producto", "valor": "...", "feeds": ["google"] }.
+// Sin "feeds" la regla aplica a todos. Las categorías aceptan ruta ("Bebidas > Cervezas") o ID.
+
+const normalizar = (s) => String(s == null ? '' : s).toLowerCase().normalize('NFD')
+  .replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+
+function coincideExclusion(i, regla) {
+  const valor = String(regla.valor == null ? '' : regla.valor).trim();
+  if (!valor) return false;
+  switch (regla.tipo) {
+    case 'sku': return i.id === valor;
+    case 'producto': return i.grupo === valor;
+    case 'marca': return normalizar(i.marcaVtex) === normalizar(valor) || i.marcaId === valor;
+    case 'coleccion': return i.colecciones.some((c) => c.id === valor || normalizar(c.nombre) === normalizar(valor));
+    case 'categoria': {
+      if (/^\d+$/.test(valor)) return i.categoriaIds.includes(valor);
+      const ruta = valor.split(/[>/]/).map(normalizar).filter(Boolean).join('/');
+      return i.rutas.some((r) => r === ruta || r.startsWith(`${ruta}/`));
+    }
+    default: return false;
+  }
+}
+
+function filtrarExclusiones(items, reglas, feed) {
+  const activas = (reglas || []).filter((r) => !r.feeds || !r.feeds.length || r.feeds.includes(feed));
+  if (!activas.length) return items;
+  // SKUs y productos pueden ser miles: se buscan en un conjunto en vez de recorrer regla por regla.
+  const skus = new Set(activas.filter((r) => r.tipo === 'sku').map((r) => String(r.valor).trim()));
+  const productos = new Set(activas.filter((r) => r.tipo === 'producto').map((r) => String(r.valor).trim()));
+  const otras = activas.filter((r) => r.tipo !== 'sku' && r.tipo !== 'producto');
+  return items.filter((i) => !skus.has(i.id) && !productos.has(i.grupo) && !otras.some((r) => coincideExclusion(i, r)));
+}
+
 function tocaActualizar(previo, horas) {
   if (horas <= 1 || !previo || !previo.actualizado) return true;
   const transcurrido = Date.now() - Date.parse(previo.actualizado);
@@ -484,10 +578,16 @@ async function generarTienda(t, previo) {
   const dir = path.join(SALIDA, t.slug);
   fs.mkdirSync(dir, { recursive: true });
   const feeds = t.feeds || ['meta', 'google', 'tiktok', 'pinterest'];
-  if (feeds.includes('meta')) escribir(path.join(dir, 'meta.csv'), feedMeta(items, t));
-  if (feeds.includes('google')) escribir(path.join(dir, 'google.xml'), feedGoogle(items, t));
-  if (feeds.includes('tiktok')) escribir(path.join(dir, 'tiktok.csv'), feedTikTok(items, t));
-  if (feeds.includes('pinterest')) escribir(path.join(dir, 'pinterest.csv'), feedPinterest(items, t));
+  const excluidos = {};
+  const paraFeed = (feed) => {
+    const lista = filtrarExclusiones(items, t.exclusiones, feed);
+    excluidos[feed] = items.length - lista.length;
+    return lista;
+  };
+  if (feeds.includes('meta')) escribir(path.join(dir, 'meta.csv'), feedMeta(paraFeed('meta'), t));
+  if (feeds.includes('google')) escribir(path.join(dir, 'google.xml'), feedGoogle(paraFeed('google'), t));
+  if (feeds.includes('tiktok')) escribir(path.join(dir, 'tiktok.csv'), feedTikTok(paraFeed('tiktok'), t));
+  if (feeds.includes('pinterest')) escribir(path.join(dir, 'pinterest.csv'), feedPinterest(paraFeed('pinterest'), t));
 
   const cambios = registrarCambios(dir, items);
   const segundos = Math.round((Date.now() - inicio) / 1000);
@@ -510,6 +610,9 @@ async function generarTienda(t, previo) {
     cambios,
     fuente_precio: fuentes,
     feeds,
+    exclusiones: t.exclusiones || [],
+    excluidos,
+    config: huellaConfig(t),
     historial,
   }, null, 2));
 
@@ -653,6 +756,12 @@ function agregarItems(p, t, items, vistos, fuentes, conteo) {
       marca: t.marca || p.brand || t.nombre,
       gtin: /^\d{8}$|^\d{12,14}$/.test(sku.ean || '') ? sku.ean : '',
       categoria: categoria(p),
+      // Datos para las reglas de exclusión.
+      rutas: (p.categories || []).map((r) => r.split('/').map(normalizar).filter(Boolean).join('/')),
+      categoriaIds: [...new Set((p.categoriesIds || []).flatMap((r) => r.split('/').filter(Boolean)))],
+      marcaVtex: p.brand || '',
+      marcaId: String(p.brandId || ''),
+      colecciones: Object.entries(p.productClusters || {}).map(([id, nombre]) => ({ id, nombre })),
     };
     if (!item.disponible) { conteo.agotados++; continue; }
     if (!item.titulo || !item.imagenes.length || !(item.precio > 0)) { conteo.incompletos++; continue; }
