@@ -46,7 +46,9 @@ body:
         Uno por línea. Puedes pegar una columna copiada de Excel, o arrastrar aquí un archivo
         .csv o .txt con los valores en la primera columna (Excel → Guardar como → CSV).
       placeholder: |
-        Bebidas > Cervezas
+        Escribe aquí lo que necesitas excluir, uno por línea.
+        Ejemplos: un SKU (1548173), una categoría (Bebidas > Cervezas), una colección o una marca.
+        También puedes arrastrar aquí un archivo .csv o .txt.
     validations:
       required: true
   - type: checkboxes
