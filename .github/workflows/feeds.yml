@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '7 * * * *'   # cada hora, minuto 7 (UTC)
   workflow_dispatch:       # botón "Run workflow" para ejecutar a mano
+    inputs:
+      tienda:
+        description: 'Slug de una tienda (vacío = todas las que les toca)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -36,7 +41,10 @@ jobs:
       - name: Generar feeds
         id: generar
         continue-on-error: true
-        run: node generar-feeds.js
+        env:
+          TIENDA: ${{ inputs.tienda }}
+        run: |
+          if [ -n "$TIENDA" ]; then node generar-feeds.js "$TIENDA" --forzar; else node generar-feeds.js; fi
 
       - name: Guardar copia en la rama feeds
         env:

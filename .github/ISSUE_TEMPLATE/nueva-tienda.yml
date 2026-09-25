@@ -1,0 +1,21 @@
+name: Agregar tienda
+description: Pega la URL de una tienda VTEX y recibe los enlaces de sus feeds.
+title: "Nueva tienda"
+labels: ["nueva-tienda"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Pega la dirección de la tienda y pulsa **Create** (Crear). En unos minutos esta página mostrará los enlaces para Meta, TikTok, Pinterest y Google Merchant Center.
+  - type: input
+    id: url
+    attributes:
+      label: URL de la tienda
+      placeholder: https://www.mitienda.com.co
+    validations:
+      required: true
+  - type: input
+    id: nombre
+    attributes:
+      label: Nombre de la tienda (opcional)
+      placeholder: Mi Tienda

@@ -1,0 +1,79 @@
+name: Agregar tienda
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
+jobs:
+  agregar:
+    # Solo el dueño del repositorio puede agregar tiendas.
+    if: contains(github.event.issue.labels.*.name, 'nueva-tienda') && github.event.issue.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Detectar y registrar la tienda
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CUERPO: ${{ github.event.issue.body }}
+          NUMERO: ${{ github.event.issue.number }}
+        run: |
+          campo() { printf '%s\n' "$CUERPO" | awk -v t="$1" 'index($0, "### " t) == 1 {f=1; next} /^### /{f=0} f && NF {print; exit}'; }
+          url=$(campo "URL")
+          nombre=$(campo "Nombre")
+          [ "$nombre" = "_No response_" ] && nombre=""
+
+          resultado=$(node agregar-tienda.js "$url" "$nombre" | tail -n 1 || true)
+          ok=$(jq -r '.ok' <<<"$resultado" 2>/dev/null || echo false)
+
+          if [ "$ok" != "true" ]; then
+            error=$(jq -r '.error // empty' <<<"$resultado" 2>/dev/null)
+            printf '❌ %s\n\nRevisa la URL y vuelve a crear la solicitud.\n' "${error:-No se pudo procesar la URL.}" > respuesta.md
+            gh issue comment "$NUMERO" --body-file respuesta.md
+            gh issue close "$NUMERO" --reason "not planned"
+            exit 0
+          fi
+
+          slug=$(jq -r '.slug' <<<"$resultado")
+          tienda=$(jq -r '.nombre' <<<"$resultado")
+          account=$(jq -r '.account' <<<"$resultado")
+          if [ "$(jq -r '.nueva' <<<"$resultado")" = "true" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+            git add tiendas.json
+            git commit -qm "Agregar tienda $slug"
+            git push -q
+            estado="Tienda **$tienda** agregada (cuenta VTEX \`$account\`). Los feeds se están generando."
+          else
+            estado="La tienda **$tienda** ya estaba registrada. Estos son sus enlaces."
+          fi
+          gh workflow run feeds.yml -f tienda="$slug"
+
+          base="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/$slug"
+          cat > respuesta.md <<EOF
+          ✅ $estado
+
+          | Plataforma | Enlace del feed |
+          |---|---|
+          | Meta | $base/meta.csv |
+          | TikTok | $base/tiktok.csv |
+          | Pinterest | $base/pinterest.csv |
+          | Google Merchant Center | $base/google.xml |
+
+          Los enlaces funcionan en **2 a 5 minutos** (en tiendas muy grandes puede tardar más). Para comprobarlo abre el estado: $base/estado.json
+
+          Menos de 2.500 productos: se actualiza cada hora. Desde 2.500 productos: una vez al día.
+          EOF
+          sed -i 's/^          //' respuesta.md
+          gh issue comment "$NUMERO" --body-file respuesta.md
+          gh issue close "$NUMERO" --reason completed

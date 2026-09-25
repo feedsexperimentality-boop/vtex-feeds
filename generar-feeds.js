@@ -14,6 +14,7 @@ const LIMITE_VTEX = Number(process.env.LIMITE_VTEX) || 2500; // tope de _from/_t
 const UMBRAL_GRANDE = 2500; // desde aquí la tienda se actualiza una vez al día
 const PARALELO = 4;
 const PRECIO_MAXIMO = 1e9;
+const MAX_IMAGENES = 4; // principal + 3 adicionales por SKU
 const SIN_DECIMALES = ['COP', 'CLP', 'PYG', 'JPY', 'KRW'];
 
 async function main() {
@@ -45,7 +46,102 @@ async function main() {
       console.error(`[${t.slug}] ERROR: ${error.message}. Se conservan los feeds anteriores.`);
     }
   }
+  escribirIndice(tiendas.filter((t) => t.activo !== false));
   if (errores) process.exitCode = 1;
+}
+
+// ---------- Página principal ----------
+
+const FEEDS_INDICE = [
+  ['meta', 'Meta', 'meta.csv'], ['tiktok', 'TikTok', 'tiktok.csv'],
+  ['pinterest', 'Pinterest', 'pinterest.csv'], ['google', 'Google Merchant Center', 'google.xml'],
+];
+
+function escribirIndice(tiendas) {
+  const repo = process.env.GITHUB_REPOSITORY || 'feedsexperimentality-boop/vtex-feeds';
+  const [dueno, nombreRepo] = repo.split('/');
+  const base = `https://${dueno}.github.io/${nombreRepo}`;
+  const html = (v) => String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  const tarjetas = tiendas.map((t) => {
+    const estado = leerJson(path.join(SALIDA, t.slug, 'estado.json'));
+    const feeds = t.feeds || FEEDS_INDICE.map((f) => f[0]);
+    const filas = FEEDS_INDICE.filter(([id]) => feeds.includes(id)).map(([, nombre, archivo]) => {
+      const url = `${base}/${t.slug}/${archivo}`;
+      return `<div class="fila"><span class="plataforma">${nombre}</span>` +
+        `<input readonly value="${html(url)}" aria-label="Enlace ${nombre}">` +
+        `<button type="button" data-copiar="${html(url)}">Copiar</button></div>`;
+    }).join('');
+    const resumen = estado
+      ? `${estado.skus.toLocaleString('es-CO')} SKUs · ${estado.en_stock.toLocaleString('es-CO')} en stock · ` +
+        `cada ${estado.frecuencia_horas === 1 ? 'hora' : `${estado.frecuencia_horas} h`} · ` +
+        `actualizado <time datetime="${html(estado.actualizado)}">${html(estado.actualizado)}</time>`
+      : 'Generando los feeds por primera vez…';
+    const aviso = estado && estado.fuente_precio && estado.fuente_precio.base
+      ? `<p class="aviso">${estado.fuente_precio.base} SKUs sin impuesto en la API: revisa que el precio coincida con la tienda.</p>` : '';
+    return `<section class="tienda"><header><h2>${html(t.nombre)}</h2>` +
+      `<a href="${html(t.dominio)}" target="_blank" rel="noopener">${html(t.dominio.replace(/^https?:\/\//, ''))}</a></header>` +
+      `<p class="resumen">${resumen} · <a href="${base}/${t.slug}/estado.json" target="_blank">estado</a></p>${aviso}${filas}</section>`;
+  }).join('\n');
+
+  escribir(path.join(SALIDA, 'index.html'), `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Feeds VTEX</title>
+<style>
+:root { --fondo:#f6f7f9; --tarjeta:#fff; --texto:#1b1f24; --suave:#5b636e; --borde:#dde1e6; --acento:#1f6feb; --aviso:#9a6700; }
+@media (prefers-color-scheme: dark) { :root { --fondo:#0d1117; --tarjeta:#161b22; --texto:#e6edf3; --suave:#9aa4af; --borde:#30363d; --acento:#4493f8; --aviso:#d29922; } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--fondo); color:var(--texto); font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width:880px; margin:0 auto; padding:32px 16px 64px; }
+.top { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:8px; }
+h1 { margin:0; font-size:24px; }
+.intro { color:var(--suave); margin:0 0 24px; }
+.boton { background:var(--acento); color:#fff; text-decoration:none; padding:10px 16px; border-radius:8px; font-weight:600; }
+.tienda { background:var(--tarjeta); border:1px solid var(--borde); border-radius:12px; padding:18px; margin-bottom:16px; }
+.tienda header { display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; }
+h2 { margin:0; font-size:18px; }
+a { color:var(--acento); }
+.resumen { color:var(--suave); font-size:13px; margin:4px 0 12px; }
+.aviso { color:var(--aviso); font-size:13px; margin:0 0 12px; }
+.fila { display:grid; grid-template-columns:170px 1fr auto; gap:8px; align-items:center; margin-top:8px; }
+.plataforma { font-weight:600; font-size:14px; }
+input { width:100%; min-width:0; font:13px ui-monospace, Consolas, monospace; padding:7px 9px; border:1px solid var(--borde); border-radius:6px; background:var(--fondo); color:var(--texto); }
+button { font:inherit; font-size:13px; padding:7px 12px; border-radius:6px; border:1px solid var(--borde); background:var(--tarjeta); color:var(--texto); cursor:pointer; }
+button.ok { border-color:var(--acento); color:var(--acento); }
+.pie { color:var(--suave); font-size:13px; margin-top:24px; }
+@media (max-width:600px) { .fila { grid-template-columns:1fr auto; } .plataforma { grid-column:1 / -1; } }
+</style>
+</head>
+<body>
+<main>
+<div class="top"><h1>Feeds VTEX</h1>
+<a class="boton" href="https://github.com/${repo}/issues/new?template=nueva-tienda.yml" target="_blank" rel="noopener">+ Agregar tienda</a></div>
+<p class="intro">Copia el enlace de cada plataforma y pégalo como feed programado. Menos de 2.500 productos: se actualiza cada hora; desde 2.500: una vez al día.</p>
+${tarjetas || '<p>Aún no hay tiendas. Pulsa “Agregar tienda”.</p>'}
+<p class="pie"><a href="https://github.com/${repo}/actions" target="_blank" rel="noopener">Ver actualizaciones</a> ·
+<a href="https://github.com/${repo}/edit/main/tiendas.json" target="_blank" rel="noopener">Editar tiendas</a></p>
+</main>
+<script>
+document.querySelectorAll('time').forEach(function (t) {
+  var d = new Date(t.getAttribute('datetime'));
+  if (!isNaN(d)) t.textContent = d.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+});
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('[data-copiar]');
+  if (!b) return;
+  var listo = function () { b.textContent = 'Copiado'; b.classList.add('ok'); setTimeout(function () { b.textContent = 'Copiar'; b.classList.remove('ok'); }, 1500); };
+  if (navigator.clipboard) navigator.clipboard.writeText(b.dataset.copiar).then(listo, function () { b.previousElementSibling.select(); });
+  else { b.previousElementSibling.select(); document.execCommand('copy'); listo(); }
+});
+</script>
+</body>
+</html>
+`);
 }
 
 function productosPrevios(previo) {
@@ -191,14 +287,15 @@ function agregarItems(p, t, items, vistos, fuentes) {
     const venta = precioFront(oferta.Price, oferta, t);
     const lista = oferta.ListPrice > oferta.Price ? precioFront(oferta.ListPrice, oferta, t) : venta;
     const titulo = tituloSku(p, sku);
+    const fotos = (sku.images || []).slice(0, Number(t.max_imagenes) || MAX_IMAGENES);
     const item = {
       id: String(sku.itemId),
       grupo: String(p.productId),
       titulo,
       descripcion: limpiarHtml(p.description || p.metaTagDescription) || t.descripcion_default || titulo,
       link: `${t.dominio.replace(/\/+$/, '')}/${p.linkText}/p?skuId=${sku.itemId}`,
-      imagenes: (sku.images || []).map((i) => imagen(i.imageUrl, t.tamano_imagen || 800)).filter(Boolean),
-      imagenesPinterest: (sku.images || []).map((i) => imagen(i.imageUrl, 1000, 1500)).filter(Boolean),
+      imagenes: fotos.map((i) => imagen(i.imageUrl, t.tamano_imagen || 800)).filter(Boolean),
+      imagenesPinterest: fotos.map((i) => imagen(i.imageUrl, 1000, 1500)).filter(Boolean),
       disponible: venta.valor > 0 && (oferta.AvailableQuantity > 0 || oferta.IsAvailable === true),
       precio: lista.valor,
       oferta: lista.valor - venta.valor >= 1 ? venta.valor : 0,
