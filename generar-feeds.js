@@ -132,13 +132,21 @@ ${historial.map((h) => `<tr><td>${fecha(h.fecha)}</td><td>${h.skus_encontrados =
 </div>`
       : `<p class="generando"><span class="punto"></span>Generando los feeds por primera vez. En catálogos grandes puede tardar varios minutos; los enlaces funcionarán cuando aparezca la fecha de actualización.</p>
 <div class="feeds">${filas}</div>`;
-    return `<section class="tienda">
+    return `<section class="tienda" id="tienda-${html(t.slug)}" data-slug="${html(t.slug)}">
 <header class="cabecera">
   <div><h2>${html(t.nombre)}</h2><a href="${html(t.dominio)}" target="_blank" rel="noopener">${html(t.dominio.replace(/^https?:\/\/(www\.)?/, ''))}</a></div>
   <div class="chips">${estado ? `<span class="chip">${frecuencia}</span><span class="chip estado" data-estado="${html(proximaActualizacion(estado))}">Al día</span>` : '<span class="chip gris">Generando</span>'}</div>
 </header>${cuerpo}
 </section>`;
   }).join('\n');
+
+  // Lista lateral ordenada alfabéticamente; cada elemento abre el detalle de su tienda.
+  const lista = tiendas.map((t, indice) => ({ t, estado: estados[indice] }))
+    .sort((a, b) => a.t.nombre.localeCompare(b.t.nombre, 'es'))
+    .map(({ t, estado }) => `<button type="button" class="item" data-abrir="${html(t.slug)}" data-buscar="${html(`${t.nombre} ${t.dominio} ${t.account}`.toLowerCase())}">
+  <span class="luz${estado ? '' : ' gris'}"${estado ? ` data-estado="${html(proximaActualizacion(estado))}"` : ''}></span>
+  <span class="item-texto"><strong>${html(t.nombre)}</strong><small>${estado ? `${numero(estado.skus)} SKUs · ${estado.frecuencia_horas > 1 ? 'Diaria' : 'Cada hora'}` : 'Generando…'}</small></span>
+</button>`).join('\n');
 
   escribir(path.join(SALIDA, 'index.html'), `<!DOCTYPE html>
 <html lang="es">
@@ -219,8 +227,29 @@ table { width:100%; border-collapse:collapse; margin-top:10px; }
 th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--borde); white-space:nowrap; }
 th { font-size:12px; color:var(--suave); font-weight:500; }
 .vacio { text-align:center; color:var(--suave); padding:40px 0; }
+.espacio { display:grid; grid-template-columns:280px minmax(0, 1fr); gap:18px; align-items:start; }
+.lateral { background:var(--tarjeta); border:1px solid var(--borde); border-radius:var(--radio); padding:14px; position:sticky; top:78px; max-height:calc(100vh - 96px); display:flex; flex-direction:column; }
+.lateral-cabecera { display:flex; justify-content:space-between; align-items:center; padding:2px 4px 10px; }
+.lateral-cabecera span { font-size:12px; color:var(--suave); background:#f1f1f1; border-radius:999px; padding:2px 9px; }
+.buscar { font:inherit; font-size:14px; margin-bottom:8px; background:#fafafa; }
+.buscar:focus { outline:none; border-color:var(--verde); box-shadow:0 0 0 3px var(--verde-suave); }
+.lista { overflow-y:auto; display:flex; flex-direction:column; gap:2px; margin:0 -4px; padding:0 4px; }
+.item { display:flex; align-items:center; gap:10px; width:100%; text-align:left; font:inherit; background:none; border:1px solid transparent; border-radius:8px; padding:9px 10px; cursor:pointer; color:var(--texto); }
+.item:hover { background:#f6f6f6; }
+.item[hidden] { display:none; }
+.item.activo { background:var(--verde-suave); border-color:#cdeec3; }
+.item-texto { min-width:0; display:flex; flex-direction:column; }
+.item-texto strong { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.item-texto small { font-size:12px; color:var(--suave); }
+.luz { flex:none; width:9px; height:9px; border-radius:50%; background:var(--verde); box-shadow:0 0 0 3px var(--verde-suave); }
+.luz.atrasada { background:var(--error); box-shadow:0 0 0 3px var(--error-fondo); }
+.luz.gris { background:#c4c4c4; box-shadow:0 0 0 3px #f1f1f1; }
+.sin-resultados { font-size:13px; color:var(--suave); margin:8px 4px; }
+.detalle .tienda { margin-bottom:0; }
+.detalle .tienda[hidden] { display:none; }
 footer { text-align:center; color:var(--suave); font-size:13px; padding:0 16px 40px; }
 footer a { color:var(--suave); }
+@media (max-width:860px) { .espacio { grid-template-columns:1fr; } .lateral { position:static; max-height:none; } .lista { max-height:260px; } }
 @media (max-width:760px) { .metricas, .resumen-global { grid-template-columns:1fr 1fr; } .feed { grid-template-columns:1fr auto; } .plataforma { grid-column:1 / -1; } .logo span { display:none; } }
 </style>
 </head>
@@ -240,7 +269,15 @@ footer a { color:var(--suave); }
   <div><span>SKUs publicados</span><strong>${numero(totalPublicados)}</strong></div>
   <div><span>Última actualización</span><strong style="font-size:16px">${ultima ? fecha(ultima) : '—'}</strong></div>
 </div>
-${tarjetas || '<p class="vacio">Aún no hay tiendas. Pulsa “Agregar tienda”.</p>'}
+${tiendas.length ? `<div class="espacio">
+<aside class="lateral">
+  <div class="lateral-cabecera"><strong>Tiendas</strong><span>${numero(tiendas.length)}</span></div>
+  <input type="search" class="buscar" placeholder="Buscar tienda…" aria-label="Buscar tienda">
+  <nav class="lista">${lista}</nav>
+  <p class="sin-resultados" hidden>No hay tiendas con ese nombre.</p>
+</aside>
+<div class="detalle">${tarjetas}</div>
+</div>` : '<p class="vacio">Aún no hay tiendas. Pulsa “Agregar tienda”.</p>'}
 </main>
 <footer>
   <a href="https://github.com/${repo}/actions" target="_blank" rel="noopener">Ver ejecuciones</a> ·
@@ -258,7 +295,33 @@ document.querySelectorAll('[data-proxima]').forEach(function (el) {
   if (atrasada(el.getAttribute('data-proxima'))) { el.classList.add('atrasada'); el.insertAdjacentText('beforeend', ' · atrasada'); }
 });
 document.querySelectorAll('[data-estado]').forEach(function (el) {
-  if (atrasada(el.getAttribute('data-estado'))) { el.classList.add('atrasada'); el.textContent = 'Atrasada'; }
+  if (!atrasada(el.getAttribute('data-estado'))) return;
+  el.classList.add('atrasada');
+  if (el.classList.contains('chip')) el.textContent = 'Atrasada';
+});
+
+// Lista lateral: muestra una tienda a la vez y recuerda la última elegida.
+var tarjetas = document.querySelectorAll('.detalle .tienda');
+var items = document.querySelectorAll('[data-abrir]');
+function abrir(slug, desplazar) {
+  var existe = document.getElementById('tienda-' + slug);
+  if (!existe) slug = items.length ? items[0].getAttribute('data-abrir') : '';
+  tarjetas.forEach(function (t) { t.hidden = t.getAttribute('data-slug') !== slug; });
+  items.forEach(function (i) { i.classList.toggle('activo', i.getAttribute('data-abrir') === slug); });
+  try { localStorage.setItem('feeds-tienda', slug); } catch (e) {}
+  if (location.hash !== '#' + slug) history.replaceState(null, '', '#' + slug);
+  if (desplazar && window.innerWidth <= 860) document.querySelector('.detalle').scrollIntoView({ behavior: 'smooth' });
+}
+items.forEach(function (i) { i.addEventListener('click', function () { abrir(i.getAttribute('data-abrir'), true); }); });
+var guardada = ''; try { guardada = localStorage.getItem('feeds-tienda') || ''; } catch (e) {}
+abrir(decodeURIComponent(location.hash.slice(1)) || guardada, false);
+window.addEventListener('hashchange', function () { abrir(decodeURIComponent(location.hash.slice(1)), false); });
+
+var buscar = document.querySelector('.buscar');
+if (buscar) buscar.addEventListener('input', function () {
+  var q = buscar.value.trim().toLowerCase(), visibles = 0;
+  items.forEach(function (i) { var ok = i.getAttribute('data-buscar').indexOf(q) >= 0; i.hidden = !ok; if (ok) visibles++; });
+  document.querySelector('.sin-resultados').hidden = visibles > 0;
 });
 document.addEventListener('click', function (e) {
   var b = e.target.closest('[data-copiar]');
