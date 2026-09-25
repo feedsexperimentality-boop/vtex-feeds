@@ -9,6 +9,28 @@
     "marca": "Papa Johns",
     "descripcion_default": "Pizza deliciosa de Papa Johns",
     "ajuste_precio": 1,
-    "feeds": ["meta", "google", "tiktok", "pinterest"]
+    "feeds": [
+      "meta",
+      "google",
+      "tiktok",
+      "pinterest"
+    ]
+  },
+  {
+    "slug": "plazacampo",
+    "nombre": "Plazacampo",
+    "account": "b2csolla",
+    "dominio": "https://www.plazacampo.com",
+    "moneda": "COP",
+    "sc": 1,
+    "marca": "",
+    "descripcion_default": "",
+    "ajuste_precio": 1,
+    "feeds": [
+      "meta",
+      "google",
+      "tiktok",
+      "pinterest"
+    ]
   }
 ]
