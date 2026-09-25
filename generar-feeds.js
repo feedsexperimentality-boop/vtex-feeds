@@ -223,6 +223,7 @@ async function generarTienda(t, previo) {
     }
   });
   if (!items.length) throw new Error('VTEX no devolvió SKUs publicables');
+  estimarImpuestoAgotados(items, fuentes);
 
   // Protección: una respuesta parcial de VTEX no debe vaciar el catálogo en las plataformas.
   if (previo && previo.skus && items.length < previo.skus * 0.5) {
@@ -264,6 +265,29 @@ async function generarTienda(t, previo) {
   if (fuentes.base) {
     console.warn(`[${t.slug}] AVISO: ${fuentes.base} SKUs sin impuesto en la API; revisa "ajuste_precio" en tiendas.json`);
   }
+}
+
+// VTEX no calcula el impuesto de los SKUs agotados. A esos se les aplica la tarifa
+// más común de la tienda para que no aparezcan sin IVA en las plataformas.
+function estimarImpuestoAgotados(items, fuentes) {
+  const conteo = {};
+  for (const i of items) {
+    if (i.fuente === 'tax') {
+      const clave = i.factor.toFixed(4);
+      conteo[clave] = (conteo[clave] || 0) + 1;
+    }
+  }
+  const factor = Number(Object.keys(conteo).sort((a, b) => conteo[b] - conteo[a])[0]);
+  if (!(factor > 1)) return;
+  for (const i of items) {
+    if (i.fuente !== 'base' || i.disponible) continue;
+    i.precio *= factor;
+    if (i.oferta) i.oferta *= factor;
+    i.fuente = 'tax_estimado_agotado';
+    fuentes.base--;
+    fuentes.tax_estimado_agotado = (fuentes.tax_estimado_agotado || 0) + 1;
+  }
+  if (fuentes.base === 0) delete fuentes.base;
 }
 
 // Compara cada SKU con la publicación anterior (precio, oferta, stock, título, link e imágenes)
@@ -382,6 +406,8 @@ function agregarItems(p, t, items, vistos, fuentes) {
       categoria: categoria(p),
     };
     if (!item.titulo || !item.imagenes.length || !(item.precio > 0)) continue;
+    item.fuente = venta.fuente;
+    item.factor = oferta.Price > 0 ? venta.valor / oferta.Price : 1;
     vistos.add(sku.itemId);
     fuentes[venta.fuente] = (fuentes[venta.fuente] || 0) + 1;
     items.push(item);
@@ -459,13 +485,16 @@ function xml(v) {
     .replace(/"/g, '&quot;').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
 }
 
+// Por defecto cada SKU es un producto independiente en Meta (sin item_group_id,
+// que es lo que agrupa variantes bajo un producto padre). "agrupar_meta": true lo activa.
 function feedMeta(items, t) {
+  const agrupar = t.agrupar_meta === true;
   const cols = ['id', 'title', 'description', 'availability', 'condition', 'price', 'sale_price', 'link',
-    'image_link', 'additional_image_link', 'brand', 'item_group_id', 'product_type', 'gtin'];
+    'image_link', 'additional_image_link', 'brand', ...(agrupar ? ['item_group_id'] : []), 'product_type', 'gtin'];
   return csv([cols, ...items.map((i) => [
     i.id, i.titulo, i.descripcion, i.disponible ? 'in stock' : 'out of stock', 'new',
     precio(i.precio, t.moneda), precio(i.oferta, t.moneda), i.link,
-    i.imagenes[0], i.imagenes.slice(1, 10).join(','), i.marca, i.grupo, i.categoria, i.gtin,
+    i.imagenes[0], i.imagenes.slice(1, 10).join(','), i.marca, ...(agrupar ? [i.grupo] : []), i.categoria, i.gtin,
   ])]);
 }
 
