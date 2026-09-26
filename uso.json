@@ -1,0 +1,35 @@
+{
+  "espacio": 0,
+  "bytes": 3328929,
+  "limite": 1073741824,
+  "porcentaje": 0.3,
+  "archivo_mayor": "papajohns/google.xml",
+  "archivo_mayor_bytes": 729225,
+  "limite_archivo": 104857600,
+  "alerta": false,
+  "espacios": [
+    {
+      "numero": 0,
+      "bytes": 3328929,
+      "porcentaje": 0.3
+    },
+    {
+      "numero": 1,
+      "bytes": 192037689,
+      "porcentaje": 17.9,
+      "alerta": false
+    },
+    {
+      "numero": 2,
+      "bytes": 214,
+      "porcentaje": 0,
+      "alerta": false
+    },
+    {
+      "numero": 3,
+      "bytes": 214,
+      "porcentaje": 0,
+      "alerta": false
+    }
+  ]
+}
