@@ -213,7 +213,7 @@ function bloqueExclusiones(t, estado, repo, html, numero) {
     : '<p class="sutil">Sin exclusiones: se envían todos los productos con stock.</p>';
   return `<div class="exclusiones">
   <div class="excl-cabecera"><strong>Exclusiones${reglas.length ? ` (${reglas.length})` : ''}</strong>
-  <a class="enlace" href="${formulario}" target="_blank" rel="noopener">+ Excluir o volver a incluir</a></div>
+  <a class="enlace solo-admin" href="${formulario}" target="_blank" rel="noopener">+ Excluir o volver a incluir</a></div>
   ${pendiente ? '<p class="sutil">⏳ Hay cambios en las exclusiones que se aplican en la próxima actualización.</p>' : ''}
   ${lista}
 </div>`;
@@ -409,6 +409,10 @@ th { font-size:12px; color:var(--suave); font-weight:500; }
 .detalle .tienda[hidden] { display:none; }
 footer { text-align:center; color:var(--suave); font-size:13px; padding:0 16px 40px; }
 footer a { color:var(--suave); }
+/* Los controles de administración solo se muestran en navegadores activados con ?admin=expe */
+.solo-admin { display:none !important; }
+body.admin .enlace.solo-admin, body.admin span.solo-admin { display:inline !important; }
+body.admin .boton.solo-admin { display:inline-block !important; }
 @media (max-width:860px) { .espacio { grid-template-columns:1fr; } .lateral { position:static; max-height:none; } .lista { max-height:260px; } }
 @media (max-width:760px) { .metricas, .resumen-global { grid-template-columns:1fr 1fr; } .feed { grid-template-columns:1fr auto; } .plataforma { grid-column:1 / -1; } .logo span { display:none; } }
 </style>
@@ -416,7 +420,7 @@ footer a { color:var(--suave); }
 <body>
 <div class="barra"><div class="barra-in">
   <a class="logo" href="https://www.experimentality.co/es" target="_blank" rel="noopener"><img src="https://www.experimentality.co/logo-light.svg" alt="Experimentality"><span>Feeds VTEX</span></a>
-  <a class="boton" href="https://github.com/${repo}/issues/new?template=nueva-tienda.yml" target="_blank" rel="noopener">+ Agregar tienda</a>
+  <a class="boton solo-admin" href="https://github.com/${repo}/issues/new?template=nueva-tienda.yml" target="_blank" rel="noopener">+ Agregar tienda</a>
 </div></div>
 <main>
 <section class="hero">
@@ -445,8 +449,8 @@ ${tiendas.length ? `<div class="espacio">
 </div>` : '<p class="vacio">Aún no hay tiendas. Pulsa “Agregar tienda”.</p>'}
 </main>
 <footer>
-  <a href="https://github.com/${repo}/actions" target="_blank" rel="noopener">Ver ejecuciones</a> ·
-  <a href="https://github.com/${repo}/edit/main/tiendas.json" target="_blank" rel="noopener">Editar tiendas</a> ·
+  <span class="solo-admin"><a href="https://github.com/${repo}/actions" target="_blank" rel="noopener">Ver ejecuciones</a> ·
+  <a href="https://github.com/${repo}/edit/main/tiendas.json" target="_blank" rel="noopener">Editar tiendas</a> ·</span>
   Hecho por <a href="https://www.experimentality.co/es" target="_blank" rel="noopener">Experimentality</a>
 </footer>
 <script>
@@ -455,6 +459,16 @@ document.querySelectorAll('time').forEach(function (t) {
   if (!isNaN(d)) t.textContent = d.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
 });
 // Si la próxima actualización ya debió ocurrir hace más de 2 horas, se marca como atrasada.
+// Modo administrador: se activa con ?admin=expe y se desactiva con ?admin=salir; lo recuerda el navegador.
+(function () {
+  var p = new URLSearchParams(location.search).get('admin');
+  try {
+    if (p === 'expe') localStorage.setItem('feeds-admin', '1');
+    if (p === 'salir') localStorage.removeItem('feeds-admin');
+    if (localStorage.getItem('feeds-admin') === '1') document.body.classList.add('admin');
+  } catch (e) {}
+  if (p) history.replaceState(null, '', location.pathname + location.hash);
+})();
 var atrasada = function (iso) { return Date.now() - new Date(iso).getTime() > 2 * 3600e3; };
 document.querySelectorAll('[data-proxima]').forEach(function (el) {
   if (atrasada(el.getAttribute('data-proxima'))) { el.classList.add('atrasada'); el.insertAdjacentText('beforeend', ' · atrasada'); }
