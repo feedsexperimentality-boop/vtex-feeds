@@ -105,5 +105,22 @@
       "tiktok",
       "pinterest"
     ]
+  },
+  {
+    "slug": "benet",
+    "nombre": "Benet",
+    "account": "cnutricionexperta",
+    "dominio": "https://www.benet.com.co",
+    "moneda": "COP",
+    "sc": 3,
+    "marca": "",
+    "descripcion_default": "",
+    "ajuste_precio": 1,
+    "feeds": [
+      "meta",
+      "google",
+      "tiktok",
+      "pinterest"
+    ]
   }
 ]
