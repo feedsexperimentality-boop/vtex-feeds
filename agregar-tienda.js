@@ -34,7 +34,10 @@ async function main() {
   const dominio = url.origin;
   const existente = tiendas.find((t) => t.account === account || mismoDominio(t.dominio, dominio));
   if (existente) {
-    return terminar({ ok: true, nueva: false, slug: existente.slug, nombre: existente.nombre, account,
+    const opciones = aplicarOpciones(existente, categoriaGoogle && !existente.google_product_category ? categoriaGoogle : '');
+    if (opciones.length) fs.writeFileSync(ARCHIVO, JSON.stringify(tiendas, null, 2) + '\n', 'utf8');
+    return terminar({ ok: true, nueva: false, actualizada: opciones.length > 0, opciones: opciones.join(', '),
+      slug: existente.slug, nombre: existente.nombre, account,
       productos: total, espacio: Number(existente.espacio) || 0, base: baseEspacio(Number(existente.espacio) || 0) });
   }
 
@@ -54,6 +57,7 @@ async function main() {
   };
   // Categoría de la taxonomía de Google para TikTok, Pinterest y Google (Meta no la usa).
   if (categoriaGoogle) tienda.google_product_category = categoriaGoogle;
+  aplicarOpciones(tienda, '');
   // Las tiendas grandes van a un espacio propio de 1 GB: el que tenga más lugar libre.
   if (total >= UMBRAL_GRANDE) {
     const espacio = await elegirEspacio(tiendas);
@@ -82,6 +86,27 @@ async function elegirEspacio(tiendas) {
   }));
   const libres = opciones.filter((o) => o.bytes < 0.7 * 1024 ** 3).sort((a, b) => a.bytes - b.bytes);
   return libres.length ? libres[0].n : 0;
+}
+
+// Opciones del formulario (variables ROPA y TITULOS). Devuelve la lista de lo que se aplicó.
+function aplicarOpciones(tienda, categoria) {
+  const aplicadas = [];
+  const ropa = String(process.env.ROPA || '').trim();
+  if (['female', 'male', 'unisex', 'kids'].includes(ropa)) {
+    tienda.ropa = ropa === 'kids' ? { genero: 'unisex', edad: 'kids' } : { genero: ropa, edad: 'adult' };
+    tienda.titulos_variaciones = true;
+    if (!tienda.google_product_category) tienda.google_product_category = 'Apparel & Accessories > Clothing';
+    aplicadas.push(`ropa (${ropa})`);
+  }
+  if (process.env.TITULOS === 'normal') {
+    tienda.titulos_formato = 'normal';
+    aplicadas.push('títulos sin mayúsculas');
+  }
+  if (categoria) {
+    tienda.google_product_category = categoria;
+    aplicadas.push('categoría de Google');
+  }
+  return aplicadas;
 }
 
 function baseEspacio(n) {

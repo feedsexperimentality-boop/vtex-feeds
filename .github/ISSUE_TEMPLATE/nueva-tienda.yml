@@ -43,3 +43,24 @@ body:
         - Ferretería (Hardware)
         - Agro e industria (Business & Industrial)
       default: 0
+  - type: dropdown
+    id: ropa
+    attributes:
+      label: ¿Es una tienda de ropa?
+      description: Si vende ropa, los feeds agregan color, talla, género y edad, que Google, Meta, TikTok y Pinterest usan en moda. El color y la talla se toman de las variaciones de cada SKU en VTEX.
+      options:
+        - No es tienda de ropa
+        - Sí, ropa de mujer (female)
+        - Sí, ropa de hombre (male)
+        - Sí, ropa unisex (unisex)
+        - Sí, ropa infantil (kids)
+      default: 0
+  - type: dropdown
+    id: titulos
+    attributes:
+      label: ¿Los títulos de los productos vienen en MAYÚSCULAS?
+      description: Google Merchant Center marca "Uso excesivo de mayúsculas". Esta opción los corrige solo en los feeds; en VTEX no cambia nada.
+      options:
+        - No, dejarlos como vienen
+        - Sí, corregirlos (ejemplo BLUSA BELICE → Blusa Belice)
+      default: 0

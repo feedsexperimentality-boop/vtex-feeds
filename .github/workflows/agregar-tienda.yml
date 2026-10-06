@@ -52,7 +52,12 @@ jobs:
           # La categoría de Google va entre paréntesis en la opción elegida.
           categoria=$(campo "Categoría" | sed -n 's/.*(\(.*\)).*/\1/p')
 
-          resultado=$(node agregar-tienda.js "$url" "$nombre" "$categoria" | tail -n 1 || true)
+          # Ropa: el valor va entre paréntesis (female, male, unisex, kids). Títulos: "Sí" = corregir mayúsculas.
+          ropa=$(campo "¿Es una tienda de ropa" | sed -n 's/.*(\(.*\)).*/\1/p')
+          titulos=""
+          case "$(campo "¿Los títulos")" in Sí*) titulos="normal";; esac
+
+          resultado=$(ROPA="$ropa" TITULOS="$titulos" node agregar-tienda.js "$url" "$nombre" "$categoria" | tail -n 1 || true)
           ok=$(jq -r '.ok' <<<"$resultado" 2>/dev/null || echo false)
 
           if [ "$ok" != "true" ]; then
@@ -66,14 +71,18 @@ jobs:
           slug=$(jq -r '.slug' <<<"$resultado")
           tienda=$(jq -r '.nombre' <<<"$resultado")
           account=$(jq -r '.account' <<<"$resultado")
-          if [ "$(jq -r '.nueva' <<<"$resultado")" = "true" ]; then
+          if ! git diff --quiet tiendas.json; then
             git config user.name "github-actions[bot]"
             git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
             git add tiendas.json
-            git commit -qm "Agregar tienda $slug"
+            git commit -qm "Agregar o actualizar tienda $slug"
             git pull -q --rebase
             git push -q
+          fi
+          if [ "$(jq -r '.nueva' <<<"$resultado")" = "true" ]; then
             estado="Tienda **$tienda** agregada (cuenta VTEX \`$account\`). Los feeds se están generando."
+          elif [ "$(jq -r '.actualizada // false' <<<"$resultado")" = "true" ]; then
+            estado="La tienda **$tienda** ya estaba registrada: se le aplicaron las opciones elegidas ($(jq -r '.opciones' <<<"$resultado")). Los feeds se actualizan en la próxima generación."
           else
             estado="La tienda **$tienda** ya estaba registrada. Estos son sus enlaces."
           fi
