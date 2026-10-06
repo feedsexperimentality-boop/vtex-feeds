@@ -114,7 +114,6 @@
       "genero": "female",
       "edad": "adult"
     },
-    "agrupar_meta": true,
     "google_excluir_destinos": [
       "Free_local_listings",
       "Local_inventory_ads"
