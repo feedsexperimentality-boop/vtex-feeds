@@ -96,7 +96,7 @@
     "dominio": "https://www.ragged.com.co",
     "moneda": "COP",
     "sc": 1,
-    "marca": "",
+    "marca": "Ragged",
     "descripcion_default": "",
     "ajuste_precio": 1,
     "feeds": [
@@ -104,7 +104,22 @@
       "google",
       "tiktok",
       "pinterest"
-    ]
+    ],
+    "titulos_formato": "normal",
+    "google_product_category": "Apparel & Accessories > Clothing",
+    "categorias_google": {
+      "Accesorios": "Apparel & Accessories > Clothing Accessories"
+    },
+    "ropa": {
+      "genero": "female",
+      "edad": "adult"
+    },
+    "agrupar_meta": true,
+    "google_excluir_destinos": [
+      "Free_local_listings",
+      "Local_inventory_ads"
+    ],
+    "titulos_variaciones": true
   },
   {
     "slug": "benet",

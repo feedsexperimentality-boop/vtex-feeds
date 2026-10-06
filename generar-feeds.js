@@ -768,7 +768,7 @@ function agregarItems(p, t, items, vistos, fuentes, conteo) {
     const oferta = (seller && seller.commertialOffer) || {};
     const venta = precioFront(oferta.Price, oferta, t);
     const lista = oferta.ListPrice > oferta.Price ? precioFront(oferta.ListPrice, oferta, t) : venta;
-    const titulo = tituloSku(p, sku);
+    const titulo = tituloSku(p, sku, t);
     const fotos = (sku.images || []).slice(0, Number(t.max_imagenes) || MAX_IMAGENES);
     const item = {
       id: String(sku.itemId),
@@ -784,6 +784,8 @@ function agregarItems(p, t, items, vistos, fuentes, conteo) {
       marca: t.marca || p.brand || t.nombre,
       gtin: /^\d{8}$|^\d{12,14}$/.test(sku.ean || '') ? sku.ean : '',
       categoria: categoria(p),
+      color: (variacionesSku(sku).find((v) => /color/i.test(v.nombre)) || {}).valor || '',
+      talla: (variacionesSku(sku).find((v) => /talla|size|tama/i.test(v.nombre)) || {}).valor || '',
       // Datos para las reglas de exclusión.
       rutas: (p.categories || []).map((r) => r.split('/').map(normalizar).filter(Boolean).join('/')),
       categoriaIds: [...new Set((p.categoriesIds || []).flatMap((r) => r.split('/').filter(Boolean)))],
@@ -820,12 +822,37 @@ function elegirSeller(sellers) {
   return conPrecio.find((s) => s.sellerDefault) || conPrecio[0] || sellers[0] || null;
 }
 
-function tituloSku(p, sku) {
+function tituloSku(p, sku, t) {
   const nombre = (p.productName || '').trim();
   const variante = (sku.name || '').trim();
-  const titulo = variante && !nombre.toLowerCase().includes(variante.toLowerCase())
-    ? `${nombre} - ${variante}` : nombre;
+  const valores = variacionesSku(sku).map((v) => v.valor).filter(Boolean);
+  let titulo;
+  if (t && t.titulos_variaciones && valores.length && variante.toLowerCase().startsWith(nombre.toLowerCase())) {
+    // "titulos_variaciones": true — el SKU repite el nombre del producto (ej. "BLUSA BELICE-AZUL-XS"),
+    // así que el título se arma con sus variaciones: "BLUSA BELICE - Azul - XS".
+    titulo = `${nombre} - ${valores.join(' - ')}`;
+  } else {
+    titulo = variante && !nombre.toLowerCase().includes(variante.toLowerCase()) ? `${nombre} - ${variante}` : nombre;
+  }
+  if (t && t.titulos_formato === 'normal') titulo = formatoTitulo(titulo);
   return titulo.slice(0, 150);
+}
+
+// Variaciones del SKU en VTEX (ej. Color, Talla) con su primer valor.
+function variacionesSku(sku) {
+  return (sku.variations || []).map((v) => ({ nombre: String(v), valor: String((sku[v] || [])[0] || '').trim() }));
+}
+
+const PALABRAS_MENORES = new Set(['de', 'del', 'la', 'las', 'el', 'los', 'y', 'e', 'o', 'con', 'para', 'en', 'a', 'al', 'por', 'sin']);
+// Pasa palabras en MAYÚSCULAS a formato normal ("BODY CAMELET" → "Body Camelet"), conservando tallas y códigos.
+function formatoTitulo(texto) {
+  return String(texto).split(/(\s+|-|\/)/).map((palabra, i) => {
+    if (!/[A-ZÁÉÍÓÚÑ]{2,}/.test(palabra) || palabra !== palabra.toUpperCase()) return palabra;
+    if (/\d/.test(palabra) || /^(X{0,3}[SL]|XX+L|M|U|UN|XS)$/.test(palabra)) return palabra;
+    const minuscula = palabra.toLowerCase();
+    if (i > 0 && PALABRAS_MENORES.has(minuscula)) return minuscula;
+    return minuscula.charAt(0).toUpperCase() + minuscula.slice(1);
+  }).join('');
 }
 
 function imagen(url, ancho, alto = ancho) {
@@ -869,16 +896,30 @@ function xml(v) {
     .replace(/"/g, '&quot;').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
 }
 
+// Ropa: con "ropa": {"genero": "female", "edad": "adult"} los feeds agregan color, talla, género y edad.
+// El color y la talla salen de las variaciones del SKU en VTEX; el género puede variar por categoría
+// principal con "generos_categoria": {"Hombre": "male"}.
+const COLS_ROPA = ['color', 'size', 'gender', 'age_group'];
+const colsRopa = (t) => (t.ropa ? COLS_ROPA : []);
+function valoresRopa(i, t) {
+  if (!t.ropa) return [];
+  const raiz = String(i.categoria || '').split(' > ')[0];
+  const genero = (t.ropa.generos_categoria && t.ropa.generos_categoria[raiz]) || t.ropa.genero || '';
+  return [i.color, i.talla, genero, t.ropa.edad || 'adult'];
+}
+
 // Por defecto cada SKU es un producto independiente en Meta (sin item_group_id,
 // que es lo que agrupa variantes bajo un producto padre). "agrupar_meta": true lo activa.
 function feedMeta(items, t) {
   const agrupar = t.agrupar_meta === true;
   const cols = ['id', 'title', 'description', 'availability', 'condition', 'price', 'sale_price', 'link',
-    'image_link', 'additional_image_link', 'brand', ...(agrupar ? ['item_group_id'] : []), 'product_type', 'gtin'];
+    'image_link', 'additional_image_link', 'brand', ...(agrupar ? ['item_group_id'] : []), 'product_type', 'gtin',
+    ...colsRopa(t)];
   return csv([cols, ...items.map((i) => [
     i.id, i.titulo, i.descripcion, i.disponible ? 'in stock' : 'out of stock', 'new',
     precio(i.precio, t.moneda), precio(i.oferta, t.moneda), i.link,
     i.imagenes[0], i.imagenes.slice(1, 10).join(','), i.marca, ...(agrupar ? [i.grupo] : []), i.categoria, i.gtin,
+    ...valoresRopa(i, t),
   ])]);
 }
 
@@ -894,12 +935,13 @@ const tresNiveles = (ruta) => String(ruta || '').split(' > ').slice(0, 3).join('
 // TikTok admite máximo 3 niveles en product_type y google_product_category.
 function feedTikTok(items, t) {
   const cols = ['sku_id', 'title', 'description', 'availability', 'condition', 'price', 'sale_price', 'link',
-    'image_link', 'additional_image_link', 'brand', 'item_group_id', 'product_type', 'google_product_category'];
+    'image_link', 'additional_image_link', 'brand', 'item_group_id', 'product_type', 'google_product_category',
+    ...colsRopa(t)];
   return csv([cols, ...items.map((i) => [
     i.id, i.titulo, i.descripcion, i.disponible ? 'in stock' : 'out of stock', 'new',
     precio(i.precio, t.moneda), precio(i.oferta, t.moneda), i.link,
     i.imagenes[0], i.imagenes.slice(1, 10).join(','), i.marca, i.grupo, tresNiveles(i.categoria),
-    tresNiveles(categoriaGoogle(i, t)),
+    tresNiveles(categoriaGoogle(i, t)), ...valoresRopa(i, t),
   ])]);
 }
 
@@ -907,11 +949,11 @@ function feedTikTok(items, t) {
 function feedPinterest(items, t) {
   const cols = ['id', 'title', 'description', 'link', 'image_link', 'additional_image_link', 'price',
     'sale_price', 'availability', 'condition', 'brand', 'item_group_id', 'product_type',
-    'google_product_category'];
+    'google_product_category', ...colsRopa(t)];
   return csv([cols, ...items.map((i) => [
     i.id, i.titulo, i.descripcion, i.link, i.imagenesPinterest[0], i.imagenesPinterest.slice(1, 11).join(','),
     precio(i.precio, t.moneda), precio(i.oferta, t.moneda), i.disponible ? 'in stock' : 'out of stock',
-    'new', i.marca, i.grupo, i.categoria, categoriaGoogle(i, t),
+    'new', i.marca, i.grupo, i.categoria, categoriaGoogle(i, t), ...valoresRopa(i, t),
   ])]);
 }
 
@@ -927,6 +969,8 @@ function feedGoogle(items, t) {
     tag('brand', i.marca), i.gtin ? tag('gtin', i.gtin) : tag('identifier_exists', 'no'),
     tag('item_group_id', i.grupo), tag('product_type', i.categoria),
     tag('google_product_category', categoriaGoogle(i, t)),
+    ...(t.ropa ? COLS_ROPA.map((c, n) => tag(c, valoresRopa(i, t)[n])) : []),
+    ...(t.google_excluir_destinos || []).map((d) => tag('excluded_destination', d)),
     '</item>',
   ].filter(Boolean).join('\n')).join('\n');
   return '<?xml version="1.0" encoding="UTF-8"?>\n' +

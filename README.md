@@ -65,6 +65,10 @@ Editar `tiendas.json` en GitHub (ícono del lápiz) y agregar un bloque:
 | `google_product_category` | Opcional, ID de la taxonomía de Google |
 | `frecuencia_horas` | Opcional. Por defecto 1 h (menos de 2.500 productos) o 24 h (2.500 o más) |
 | `activo` | `false` para pausar la tienda |
+| `titulos_formato` | `"normal"` pasa títulos en MAYÚSCULAS a formato normal ("BODY CAMELET" → "Body Camelet") |
+| `titulos_variaciones` | `true` arma el título con las variaciones del SKU cuando VTEX repite el nombre ("Blusa Belice - Azul - XS") |
+| `ropa` | `{"genero": "female", "edad": "adult"}` agrega color, talla, género y edad (color y talla salen de las variaciones del SKU). Opcional: `"generos_categoria": {"Hombre": "male"}` |
+| `google_excluir_destinos` | Lista de `excluded_destination` para Google, ej. `["Free_local_listings", "Local_inventory_ads"]` cuando Merchant pide inventario local |
 
 En `estado.json`, `fuente_precio` indica de dónde salió cada precio. Si aparece `base`, esos SKUs no traen impuesto en la API: comparar con el front y ajustar `ajuste_precio`.
 
