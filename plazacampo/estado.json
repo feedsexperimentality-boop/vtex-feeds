@@ -1,0 +1,350 @@
+{
+  "tienda": "Plazacampo",
+  "actualizado": "2026-10-18T00:42:31.685Z",
+  "frecuencia_horas": 1,
+  "duracion_segundos": 2,
+  "productos_vtex": 278,
+  "productos": 278,
+  "grupos_de_precio": 1,
+  "skus_encontrados": 351,
+  "skus": 326,
+  "agotados": 23,
+  "incompletos": 0,
+  "link_roto": 2,
+  "links_rotos": [
+    {
+      "producto": "62",
+      "nombre": "Sabueso Cachorros Ext 15 Kg",
+      "texto_link": "sabueso-cachorros-ext 15-kg-1-jpg"
+    },
+    {
+      "producto": "65",
+      "nombre": "Sabueso  Adultos Ext 4 Kg",
+      "texto_link": "sabueso -adultos-ext-4x4-kg-1-jpg"
+    }
+  ],
+  "cambios": {
+    "nuevos": 0,
+    "modificados": 0,
+    "eliminados": 0
+  },
+  "fuente_precio": {
+    "tax": 326
+  },
+  "feeds": [
+    "meta",
+    "google",
+    "tiktok",
+    "pinterest"
+  ],
+  "exclusiones": [],
+  "excluidos": {
+    "meta": 0,
+    "google": 0,
+    "tiktok": 0,
+    "pinterest": 0
+  },
+  "config": "A4GEfj/RSrQz",
+  "historial": [
+    {
+      "fecha": "2026-10-18T00:42:31.685Z",
+      "skus": 326,
+      "skus_encontrados": 351,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T23:25:50.403Z",
+      "skus": 326,
+      "skus_encontrados": 351,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T22:27:46.577Z",
+      "skus": 326,
+      "skus_encontrados": 351,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 1,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T21:28:23.345Z",
+      "skus": 326,
+      "skus_encontrados": 351,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T20:29:44.656Z",
+      "skus": 326,
+      "skus_encontrados": 351,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T19:27:14.958Z",
+      "skus": 326,
+      "skus_encontrados": 351,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T18:31:51.875Z",
+      "skus": 326,
+      "skus_encontrados": 351,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T17:27:35.977Z",
+      "skus": 326,
+      "skus_encontrados": 351,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 2,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T16:29:41.080Z",
+      "skus": 326,
+      "skus_encontrados": 351,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T15:29:03.049Z",
+      "skus": 326,
+      "skus_encontrados": 351,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T14:28:40.583Z",
+      "skus": 326,
+      "skus_encontrados": 351,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T13:31:35.281Z",
+      "skus": 326,
+      "skus_encontrados": 351,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T12:34:37.079Z",
+      "skus": 326,
+      "skus_encontrados": 351,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T11:28:57.239Z",
+      "skus": 326,
+      "skus_encontrados": 352,
+      "agotados": 24,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 1,
+      "eliminados": 1
+    },
+    {
+      "fecha": "2026-10-17T10:29:23.301Z",
+      "skus": 327,
+      "skus_encontrados": 352,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T09:29:53.541Z",
+      "skus": 327,
+      "skus_encontrados": 352,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T08:31:13.335Z",
+      "skus": 327,
+      "skus_encontrados": 352,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T07:34:11.240Z",
+      "skus": 327,
+      "skus_encontrados": 352,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T06:36:19.183Z",
+      "skus": 327,
+      "skus_encontrados": 352,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T05:30:10.992Z",
+      "skus": 327,
+      "skus_encontrados": 352,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T04:31:33.881Z",
+      "skus": 327,
+      "skus_encontrados": 352,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T03:31:03.332Z",
+      "skus": 327,
+      "skus_encontrados": 352,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T02:31:30.885Z",
+      "skus": 327,
+      "skus_encontrados": 352,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T01:32:24.054Z",
+      "skus": 327,
+      "skus_encontrados": 352,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-17T00:43:19.369Z",
+      "skus": 327,
+      "skus_encontrados": 352,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-16T23:27:35.263Z",
+      "skus": 327,
+      "skus_encontrados": 353,
+      "agotados": 24,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 1
+    },
+    {
+      "fecha": "2026-10-16T22:32:09.240Z",
+      "skus": 328,
+      "skus_encontrados": 353,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 1,
+      "modificados": 1,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-16T21:31:16.112Z",
+      "skus": 327,
+      "skus_encontrados": 354,
+      "agotados": 25,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 2
+    },
+    {
+      "fecha": "2026-10-16T20:31:34.141Z",
+      "skus": 329,
+      "skus_encontrados": 354,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 1
+    },
+    {
+      "fecha": "2026-10-16T19:31:53.140Z",
+      "skus": 330,
+      "skus_encontrados": 355,
+      "agotados": 23,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    }
+  ]
+}

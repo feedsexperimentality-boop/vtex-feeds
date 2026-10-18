@@ -1,0 +1,35 @@
+{
+  "espacio": 0,
+  "bytes": 33091420,
+  "limite": 1073741824,
+  "porcentaje": 3.1,
+  "archivo_mayor": "ragged/google.xml",
+  "archivo_mayor_bytes": 11529963,
+  "limite_archivo": 104857600,
+  "alerta": false,
+  "espacios": [
+    {
+      "numero": 0,
+      "bytes": 33091420,
+      "porcentaje": 3.1
+    },
+    {
+      "numero": 1,
+      "bytes": 199891259,
+      "porcentaje": 18.6,
+      "alerta": false
+    },
+    {
+      "numero": 2,
+      "bytes": 214,
+      "porcentaje": 0,
+      "alerta": false
+    },
+    {
+      "numero": 3,
+      "bytes": 214,
+      "porcentaje": 0,
+      "alerta": false
+    }
+  ]
+}
