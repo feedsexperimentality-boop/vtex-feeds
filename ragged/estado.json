@@ -1,0 +1,339 @@
+{
+  "tienda": "Ragged",
+  "actualizado": "2026-10-24T18:32:16.561Z",
+  "frecuencia_horas": 1,
+  "duracion_segundos": 11,
+  "productos_vtex": 1357,
+  "productos": 1357,
+  "grupos_de_precio": 1,
+  "skus_encontrados": 7634,
+  "skus": 7503,
+  "agotados": 131,
+  "incompletos": 0,
+  "link_roto": 0,
+  "links_rotos": [],
+  "cambios": {
+    "nuevos": 0,
+    "modificados": 33,
+    "eliminados": 2
+  },
+  "fuente_precio": {
+    "base": 7503
+  },
+  "feeds": [
+    "meta",
+    "google",
+    "tiktok",
+    "pinterest"
+  ],
+  "exclusiones": [],
+  "excluidos": {
+    "meta": 0,
+    "google": 0,
+    "tiktok": 0,
+    "pinterest": 0
+  },
+  "config": "nGj543Wgjqgr",
+  "historial": [
+    {
+      "fecha": "2026-10-24T18:32:16.561Z",
+      "skus": 7503,
+      "skus_encontrados": 7634,
+      "agotados": 131,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 33,
+      "eliminados": 2
+    },
+    {
+      "fecha": "2026-10-24T17:29:14.237Z",
+      "skus": 7505,
+      "skus_encontrados": 7634,
+      "agotados": 129,
+      "incompletos": 0,
+      "nuevos": 1,
+      "modificados": 45,
+      "eliminados": 2
+    },
+    {
+      "fecha": "2026-10-24T16:31:26.734Z",
+      "skus": 7506,
+      "skus_encontrados": 7634,
+      "agotados": 128,
+      "incompletos": 0,
+      "nuevos": 1,
+      "modificados": 180,
+      "eliminados": 1
+    },
+    {
+      "fecha": "2026-10-24T15:30:16.689Z",
+      "skus": 7506,
+      "skus_encontrados": 7634,
+      "agotados": 128,
+      "incompletos": 0,
+      "nuevos": 1,
+      "modificados": 174,
+      "eliminados": 2
+    },
+    {
+      "fecha": "2026-10-24T14:30:26.401Z",
+      "skus": 7507,
+      "skus_encontrados": 7635,
+      "agotados": 128,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 509,
+      "eliminados": 5
+    },
+    {
+      "fecha": "2026-10-24T13:33:09.220Z",
+      "skus": 7512,
+      "skus_encontrados": 7635,
+      "agotados": 123,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 312,
+      "eliminados": 2
+    },
+    {
+      "fecha": "2026-10-24T12:37:06.280Z",
+      "skus": 7514,
+      "skus_encontrados": 7635,
+      "agotados": 121,
+      "incompletos": 0,
+      "nuevos": 1,
+      "modificados": 288,
+      "eliminados": 1
+    },
+    {
+      "fecha": "2026-10-24T11:30:54.581Z",
+      "skus": 7514,
+      "skus_encontrados": 7635,
+      "agotados": 121,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 194,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-24T10:31:15.863Z",
+      "skus": 7514,
+      "skus_encontrados": 7635,
+      "agotados": 121,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 339,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-24T09:31:45.028Z",
+      "skus": 7514,
+      "skus_encontrados": 7635,
+      "agotados": 121,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 122,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-24T08:32:39.337Z",
+      "skus": 7514,
+      "skus_encontrados": 7635,
+      "agotados": 121,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 367,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-24T07:36:45.332Z",
+      "skus": 7514,
+      "skus_encontrados": 7635,
+      "agotados": 121,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 317,
+      "eliminados": 1
+    },
+    {
+      "fecha": "2026-10-24T06:37:12.581Z",
+      "skus": 7515,
+      "skus_encontrados": 7635,
+      "agotados": 120,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 114,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-24T05:31:49.746Z",
+      "skus": 7515,
+      "skus_encontrados": 7635,
+      "agotados": 120,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 3221,
+      "eliminados": 1
+    },
+    {
+      "fecha": "2026-10-24T04:31:47.705Z",
+      "skus": 7516,
+      "skus_encontrados": 7635,
+      "agotados": 119,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 1
+    },
+    {
+      "fecha": "2026-10-24T03:33:05.111Z",
+      "skus": 7517,
+      "skus_encontrados": 7635,
+      "agotados": 118,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-24T02:32:21.582Z",
+      "skus": 7517,
+      "skus_encontrados": 7635,
+      "agotados": 118,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 2
+    },
+    {
+      "fecha": "2026-10-24T01:42:46.800Z",
+      "skus": 7519,
+      "skus_encontrados": 7635,
+      "agotados": 116,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 1
+    },
+    {
+      "fecha": "2026-10-24T00:48:36.139Z",
+      "skus": 7520,
+      "skus_encontrados": 7635,
+      "agotados": 115,
+      "incompletos": 0,
+      "nuevos": 1,
+      "modificados": 0,
+      "eliminados": 1
+    },
+    {
+      "fecha": "2026-10-23T23:30:37.410Z",
+      "skus": 7520,
+      "skus_encontrados": 7635,
+      "agotados": 115,
+      "incompletos": 0,
+      "nuevos": 1,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-23T22:32:33.052Z",
+      "skus": 7519,
+      "skus_encontrados": 7635,
+      "agotados": 116,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 6
+    },
+    {
+      "fecha": "2026-10-23T21:33:31.680Z",
+      "skus": 7525,
+      "skus_encontrados": 7636,
+      "agotados": 111,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 5
+    },
+    {
+      "fecha": "2026-10-23T20:33:49.617Z",
+      "skus": 7530,
+      "skus_encontrados": 7636,
+      "agotados": 106,
+      "incompletos": 0,
+      "nuevos": 1,
+      "modificados": 34,
+      "eliminados": 3
+    },
+    {
+      "fecha": "2026-10-23T19:35:14.510Z",
+      "skus": 7532,
+      "skus_encontrados": 7635,
+      "agotados": 103,
+      "incompletos": 0,
+      "nuevos": 2,
+      "modificados": 0,
+      "eliminados": 3
+    },
+    {
+      "fecha": "2026-10-23T18:38:34.270Z",
+      "skus": 7533,
+      "skus_encontrados": 7635,
+      "agotados": 102,
+      "incompletos": 0,
+      "nuevos": 0,
+      "modificados": 0,
+      "eliminados": 3
+    },
+    {
+      "fecha": "2026-10-23T17:33:08.142Z",
+      "skus": 7536,
+      "skus_encontrados": 7635,
+      "agotados": 99,
+      "incompletos": 0,
+      "nuevos": 9,
+      "modificados": 34,
+      "eliminados": 3
+    },
+    {
+      "fecha": "2026-10-23T16:38:22.467Z",
+      "skus": 7530,
+      "skus_encontrados": 7624,
+      "agotados": 94,
+      "incompletos": 0,
+      "nuevos": 14,
+      "modificados": 0,
+      "eliminados": 0
+    },
+    {
+      "fecha": "2026-10-23T15:37:52.935Z",
+      "skus": 7516,
+      "skus_encontrados": 7610,
+      "agotados": 94,
+      "incompletos": 0,
+      "nuevos": 17,
+      "modificados": 0,
+      "eliminados": 5
+    },
+    {
+      "fecha": "2026-10-23T14:40:15.300Z",
+      "skus": 7504,
+      "skus_encontrados": 7682,
+      "agotados": 178,
+      "incompletos": 0,
+      "nuevos": 9,
+      "modificados": 0,
+      "eliminados": 3
+    },
+    {
+      "fecha": "2026-10-23T13:42:19.983Z",
+      "skus": 7498,
+      "skus_encontrados": 7681,
+      "agotados": 183,
+      "incompletos": 0,
+      "nuevos": 1,
+      "modificados": 0,
+      "eliminados": 6
+    }
+  ]
+}
