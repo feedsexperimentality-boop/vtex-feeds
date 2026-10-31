@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Feeds VTEX · Experimentality</title>
+<link rel="icon" href="https://www.experimentality.co/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --fondo:#f8f8f8; --tarjeta:#fff; --texto:#0a0a0a; --suave:#717171; --borde:#e5e5e5;
+  --verde:#73d15b; --celeste:#0bbef0; --verde-texto:#2f8a1c; --verde-suave:#eef9ea;
+  --degradado:linear-gradient(90deg, var(--verde) 0%, var(--celeste) 100%);
+  --aviso:#9a6700; --aviso-fondo:#fff8e6; --error:#e40014; --error-fondo:#fdecee; --radio:10px;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--fondo); color:var(--texto); font:15px/1.55 Poppins, ui-sans-serif, system-ui, sans-serif; }
+a { color:inherit; }
+.barra { background:rgba(255,255,255,.85); backdrop-filter:blur(8px); border-bottom:1px solid var(--borde); position:sticky; top:0; z-index:5; }
+.barra-in { max-width:1040px; margin:0 auto; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.logo { display:flex; align-items:center; gap:12px; text-decoration:none; }
+.logo img { height:30px; display:block; }
+.logo span { font-size:13px; color:var(--suave); border-left:1px solid var(--borde); padding-left:12px; }
+.boton { background:var(--degradado); color:#fff; text-decoration:none; font-weight:600; font-size:14px; padding:10px 18px; border-radius:8px; white-space:nowrap; box-shadow:0 6px 18px rgba(11,190,240,.22); transition:transform .15s, box-shadow .15s; }
+.boton:hover { transform:translateY(-1px); box-shadow:0 10px 24px rgba(11,190,240,.3); }
+main { max-width:1040px; margin:0 auto; padding:40px 16px 72px; }
+.hero { text-align:center; margin-bottom:36px; }
+.pildora { display:inline-flex; align-items:center; gap:8px; background:var(--verde-suave); border:1px solid #cdeec3; color:#2b4d22; font-size:13px; padding:6px 14px; border-radius:999px; }
+.pildora::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--verde); }
+h1 { font-size:clamp(28px, 4.6vw, 44px); line-height:1.15; font-weight:700; margin:18px 0 10px; letter-spacing:-.01em; }
+.resaltado { background:var(--degradado); -webkit-background-clip:text; background-clip:text; color:transparent; text-decoration:underline; text-decoration-color:var(--verde); text-underline-offset:6px; text-decoration-thickness:3px; }
+.hero p { color:var(--suave); max-width:640px; margin:0 auto; }
+.resumen-global { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin:0 0 28px; }
+.resumen-global small { font-size:12px; font-weight:400; color:var(--suave); }
+.barra-uso { height:6px; border-radius:999px; background:#eee; margin-top:8px; overflow:hidden; }
+.barra-uso i { display:block; height:100%; border-radius:999px; background:var(--degradado); }
+.uso.lleno .barra-uso i { background:linear-gradient(90deg, #f5a623, var(--error)); }
+.resumen-global div { background:var(--tarjeta); border:1px solid var(--borde); border-radius:var(--radio); padding:14px 16px; }
+.resumen-global span { display:block; font-size:12px; color:var(--suave); }
+.resumen-global strong { font-size:22px; font-weight:700; }
+.tienda { background:var(--tarjeta); border:1px solid var(--borde); border-radius:var(--radio); padding:22px; margin-bottom:18px; box-shadow:0 1px 2px rgba(0,0,0,.03); }
+.cabecera { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-start; gap:10px; }
+h2 { margin:0; font-size:20px; font-weight:600; }
+.cabecera a { font-size:13px; color:var(--suave); text-decoration:none; }
+.cabecera a:hover { color:var(--texto); text-decoration:underline; }
+.chips { display:flex; gap:6px; flex-wrap:wrap; }
+.chip { font-size:12px; font-weight:500; padding:4px 10px; border-radius:999px; background:#f1f5f9; color:#334155; }
+.chip.estado { background:var(--verde-suave); color:var(--verde-texto); }
+.chip.atrasada { background:var(--error-fondo); color:var(--error); }
+.chip.gris { background:#f1f1f1; color:var(--suave); }
+.metricas { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin:18px 0 6px; }
+.metrica { border:1px solid var(--borde); border-radius:8px; padding:10px 12px; min-width:0; }
+.metrica span { display:block; font-size:12px; color:var(--suave); }
+.metrica strong { display:block; font-size:15px; font-weight:600; }
+.metrica small { font-size:12px; font-weight:400; color:var(--suave); }
+.metrica.destacada { border-color:#cdeec3; background:var(--verde-suave); }
+.metrica.destacada strong { color:var(--verde-texto); font-size:18px; }
+.metrica strong.atrasada { color:var(--error); }
+.aviso { background:var(--aviso-fondo); color:var(--aviso); font-size:13px; border-radius:8px; padding:8px 12px; margin:10px 0 0; }
+.generando { display:flex; gap:10px; align-items:flex-start; color:var(--suave); font-size:14px; margin:16px 0 4px; }
+.punto { flex:none; width:10px; height:10px; margin-top:6px; border-radius:50%; background:var(--celeste); animation:pulso 1.2s ease-in-out infinite; }
+@keyframes pulso { 50% { opacity:.3; } }
+.feeds { margin-top:14px; border-top:1px solid var(--borde); padding-top:6px; }
+.feed { display:grid; grid-template-columns:220px 1fr auto; gap:10px; align-items:center; padding:7px 0; }
+.plataforma { display:flex; align-items:center; gap:10px; font-weight:500; font-size:14px; }
+.marca { font-style:normal; width:26px; height:26px; border-radius:7px; display:grid; place-items:center; color:#fff; font-size:13px; font-weight:700; }
+.marca-meta { background:#0866ff; } .marca-tiktok { background:#111; } .marca-pinterest { background:#e60023; } .marca-google { background:#34a853; }
+input { width:100%; min-width:0; font:13px ui-monospace, "Cascadia Code", Consolas, monospace; color:#334155; padding:8px 10px; border:1px solid var(--borde); border-radius:8px; background:#fafafa; }
+.copiar { font:inherit; font-size:13px; font-weight:500; padding:8px 14px; border-radius:8px; border:1px solid var(--borde); background:#fff; cursor:pointer; transition:border-color .15s, color .15s; }
+.copiar:hover { border-color:var(--verde); }
+.copiar.ok { background:var(--verde-suave); border-color:var(--verde); color:var(--verde-texto); }
+.fuera { font-size:11px; font-weight:600; color:var(--aviso); background:var(--aviso-fondo); border-radius:999px; padding:1px 7px; }
+.exclusiones { margin-top:12px; border:1px dashed var(--borde); border-radius:8px; padding:10px 12px; font-size:13px; }
+.excl-cabecera { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.enlace { color:#0a7fa3; font-weight:500; text-decoration:none; white-space:nowrap; }
+.enlace:hover { text-decoration:underline; }
+.sutil { color:var(--suave); margin:6px 0 0; }
+.reglas { list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:6px; }
+.reglas li { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.reglas .valor { font-weight:500; }
+.reglas small { color:var(--suave); }
+.ids { flex-basis:100%; }
+.ids summary { font-size:12px; }
+.ids span { display:block; margin-top:4px; font:12px ui-monospace, Consolas, monospace; color:var(--suave); word-break:break-all; }
+.pie-tarjeta { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-top:10px; font-size:13px; }
+.tecnico { color:var(--suave); white-space:nowrap; }
+details { flex:1; min-width:0; }
+summary { cursor:pointer; font-weight:500; color:#0a7fa3; }
+.tabla { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; margin-top:10px; }
+th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--borde); white-space:nowrap; }
+th { font-size:12px; color:var(--suave); font-weight:500; }
+.vacio { text-align:center; color:var(--suave); padding:40px 0; }
+.espacio { display:grid; grid-template-columns:280px minmax(0, 1fr); gap:18px; align-items:start; }
+.lateral { background:var(--tarjeta); border:1px solid var(--borde); border-radius:var(--radio); padding:14px; position:sticky; top:78px; max-height:calc(100vh - 96px); display:flex; flex-direction:column; }
+.lateral-cabecera { display:flex; justify-content:space-between; align-items:center; padding:2px 4px 10px; }
+.lateral-cabecera span { font-size:12px; color:var(--suave); background:#f1f1f1; border-radius:999px; padding:2px 9px; }
+.buscar { font:inherit; font-size:14px; margin-bottom:8px; background:#fafafa; }
+.buscar:focus { outline:none; border-color:var(--verde); box-shadow:0 0 0 3px var(--verde-suave); }
+.lista { overflow-y:auto; display:flex; flex-direction:column; gap:2px; margin:0 -4px; padding:0 4px; }
+.item { display:flex; align-items:center; gap:10px; width:100%; text-align:left; font:inherit; background:none; border:1px solid transparent; border-radius:8px; padding:9px 10px; cursor:pointer; color:var(--texto); }
+.item:hover { background:#f6f6f6; }
+.item[hidden] { display:none; }
+.item.activo { background:var(--verde-suave); border-color:#cdeec3; }
+.item-texto { min-width:0; display:flex; flex-direction:column; }
+.item-texto strong { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.item-texto small { font-size:12px; color:var(--suave); }
+.luz { flex:none; width:9px; height:9px; border-radius:50%; background:var(--verde); box-shadow:0 0 0 3px var(--verde-suave); }
+.luz.atrasada { background:var(--error); box-shadow:0 0 0 3px var(--error-fondo); }
+.luz.gris { background:#c4c4c4; box-shadow:0 0 0 3px #f1f1f1; }
+.sin-resultados { font-size:13px; color:var(--suave); margin:8px 4px; }
+.detalle .tienda { margin-bottom:0; }
+.detalle .tienda[hidden] { display:none; }
+footer { text-align:center; color:var(--suave); font-size:13px; padding:0 16px 40px; }
+footer a { color:var(--suave); }
+/* Los controles de administración solo se muestran en navegadores activados con ?admin=expe */
+.solo-admin { display:none !important; }
+body.admin .enlace.solo-admin, body.admin span.solo-admin { display:inline !important; }
+body.admin .boton.solo-admin { display:inline-block !important; }
+@media (max-width:860px) { .espacio { grid-template-columns:1fr; } .lateral { position:static; max-height:none; } .lista { max-height:260px; } }
+@media (max-width:760px) { .metricas, .resumen-global { grid-template-columns:1fr 1fr; } .feed { grid-template-columns:1fr auto; } .plataforma { grid-column:1 / -1; } .logo span { display:none; } }
+</style>
+</head>
+<body>
+<div class="barra"><div class="barra-in">
+  <a class="logo" href="https://www.experimentality.co/es" target="_blank" rel="noopener"><img src="https://www.experimentality.co/logo-light.svg" alt="Experimentality"><span>Feeds VTEX</span></a>
+  <a class="boton solo-admin" href="https://github.com/feedsexperimentality-boop/vtex-feeds/issues/new?template=nueva-tienda.yml" target="_blank" rel="noopener">+ Agregar tienda</a>
+</div></div>
+<main>
+<section class="hero">
+  <span class="pildora">Meta · TikTok · Pinterest · Google Merchant Center</span>
+  <h1>Feeds de catálogo que se <span class="resaltado">actualizan</span> solos</h1>
+  <p>Copia el enlace de cada plataforma y pégalo como feed programado. Menos de 2.500 productos: cada hora. Desde 2.500: una vez al día.</p>
+</section>
+<div class="resumen-global">
+  <div><span>Tiendas</span><strong>5</strong></div>
+  <div><span>SKUs publicados</span><strong>49.131</strong></div>
+  <div><span>Última actualización</span><strong style="font-size:16px"><time datetime="2026-10-31T17:40:09.444Z">2026-10-31T17:40:09.444Z</time></strong></div>
+  <div class="uso" title="Principal: 3.1 % · Espacio 1: 18.9 % · Espacio 2: 0 % · Espacio 3: 0 %">
+    <span>Espacio usado</span><strong style="font-size:16px">225 MB <small>de 4 GB</small></strong>
+    <div class="barra-uso"><i style="width:5.5%"></i></div>
+  </div>
+</div>
+
+<div class="espacio">
+<aside class="lateral">
+  <div class="lateral-cabecera"><strong>Tiendas</strong><span>5</span></div>
+  <input type="search" class="buscar" placeholder="Buscar tienda…" aria-label="Buscar tienda">
+  <nav class="lista"><button type="button" class="item" data-abrir="benet" data-buscar="benet https://www.benet.com.co cnutricionexperta">
+  <span class="luz" data-estado="2026-10-31T18:07:00.000Z"></span>
+  <span class="item-texto"><strong>Benet</strong><small>69 SKUs · Cada hora</small></span>
+</button>
+<button type="button" class="item" data-abrir="lamarina" data-buscar="la marina https://www.lamarina.com.mx lamarinamx">
+  <span class="luz" data-estado="2026-11-01T00:07:00.000Z"></span>
+  <span class="item-texto"><strong>La Marina</strong><small>40.579 SKUs · Diaria</small></span>
+</button>
+<button type="button" class="item" data-abrir="papajohns" data-buscar="papa johns https://www.papajohns.com.co papajohns">
+  <span class="luz" data-estado="2026-10-31T18:07:00.000Z"></span>
+  <span class="item-texto"><strong>Papa Johns</strong><small>799 SKUs · Cada hora</small></span>
+</button>
+<button type="button" class="item" data-abrir="plazacampo" data-buscar="plazacampo https://www.plazacampo.com b2csolla">
+  <span class="luz" data-estado="2026-10-31T18:07:00.000Z"></span>
+  <span class="item-texto"><strong>Plazacampo</strong><small>335 SKUs · Cada hora</small></span>
+</button>
+<button type="button" class="item" data-abrir="ragged" data-buscar="ragged https://www.ragged.com.co ragged">
+  <span class="luz" data-estado="2026-10-31T18:07:00.000Z"></span>
+  <span class="item-texto"><strong>Ragged</strong><small>7.349 SKUs · Cada hora</small></span>
+</button></nav>
+  <p class="sin-resultados" hidden>No hay tiendas con ese nombre.</p>
+</aside>
+<div class="detalle"><section class="tienda" id="tienda-papajohns" data-slug="papajohns">
+<header class="cabecera">
+  <div><h2>Papa Johns</h2><a href="https://www.papajohns.com.co" target="_blank" rel="noopener">papajohns.com.co</a></div>
+  <div class="chips"><span class="chip">Cada hora</span><span class="chip estado" data-estado="2026-10-31T18:07:00.000Z">Al día</span></div>
+</header>
+<div class="metricas">
+  <div class="metrica"><span>Última actualización</span><strong><time datetime="2026-10-31T17:39:50.130Z">2026-10-31T17:39:50.130Z</time></strong></div>
+  <div class="metrica"><span>Próxima (aprox.)</span><strong data-proxima="2026-10-31T18:07:00.000Z"><time datetime="2026-10-31T18:07:00.000Z">2026-10-31T18:07:00.000Z</time></strong></div>
+  <div class="metrica"><span>Cambios en el feed</span><strong>Sin cambios</strong></div>
+  <div class="metrica"><span>Encontrados en VTEX</span><strong>817 <small>SKUs · 107 productos</small></strong></div>
+  <div class="metrica destacada"><span>Publicados con stock</span><strong>799</strong></div>
+  <div class="metrica"><span>Agotados · no se envían</span><strong>18</strong></div>
+</div>
+
+
+
+<div class="feeds"><div class="feed"><span class="plataforma"><i class="marca marca-meta">M</i>Meta</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds/papajohns/meta.csv" aria-label="Enlace Meta"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds/papajohns/meta.csv">Copiar</button></div><div class="feed"><span class="plataforma"><i class="marca marca-tiktok">T</i>TikTok</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds/papajohns/tiktok.csv" aria-label="Enlace TikTok"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds/papajohns/tiktok.csv">Copiar</button></div><div class="feed"><span class="plataforma"><i class="marca marca-pinterest">P</i>Pinterest</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds/papajohns/pinterest.csv" aria-label="Enlace Pinterest"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds/papajohns/pinterest.csv">Copiar</button></div><div class="feed"><span class="plataforma"><i class="marca marca-google">G</i>Google Merchant Center</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds/papajohns/google.xml" aria-label="Enlace Google Merchant Center"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds/papajohns/google.xml">Copiar</button></div></div>
+<div class="exclusiones">
+  <div class="excl-cabecera"><strong>Exclusiones</strong>
+  <a class="enlace solo-admin" href="https://github.com/feedsexperimentality-boop/vtex-feeds/issues/new?template=excluir-productos.yml&tienda=papajohns" target="_blank" rel="noopener">+ Excluir o volver a incluir</a></div>
+  
+  <p class="sutil">Sin exclusiones: se envían todos los productos con stock.</p>
+</div>
+<div class="pie-tarjeta">
+<details><summary>Historial de actualizaciones (30)</summary><div class="tabla"><table>
+<thead><tr><th>Fecha</th><th>Encontrados</th><th>Publicados</th><th>Agotados</th><th>Cambios</th></tr></thead><tbody>
+<tr><td><time datetime="2026-10-31T17:39:50.130Z">2026-10-31T17:39:50.130Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-31T12:14:08.422Z">2026-10-31T12:14:08.422Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-31T05:25:34.628Z">2026-10-31T05:25:34.628Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-30T23:39:20.884Z">2026-10-30T23:39:20.884Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-30T19:14:04.634Z">2026-10-30T19:14:04.634Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-30T14:01:53.792Z">2026-10-30T14:01:53.792Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-30T07:01:02.959Z">2026-10-30T07:01:02.959Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-30T00:50:22.080Z">2026-10-30T00:50:22.080Z</time></td><td>817</td><td>799</td><td>18</td><td>2 nuevos</td></tr>
+<tr><td><time datetime="2026-10-29T20:12:59.281Z">2026-10-29T20:12:59.281Z</time></td><td>815</td><td>797</td><td>18</td><td>2 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-29T14:09:27.000Z">2026-10-29T14:09:27.000Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-29T06:58:14.291Z">2026-10-29T06:58:14.291Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-29T00:48:48.081Z">2026-10-29T00:48:48.081Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-28T20:59:10.465Z">2026-10-28T20:59:10.465Z</time></td><td>817</td><td>799</td><td>18</td><td>734 nuevos</td></tr>
+<tr><td><time datetime="2026-10-28T15:56:31.793Z">2026-10-28T15:56:31.793Z</time></td><td>817</td><td>65</td><td>752</td><td>734 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-28T08:19:59.603Z">2026-10-28T08:19:59.603Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-28T01:13:04.283Z">2026-10-28T01:13:04.283Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-27T21:14:21.024Z">2026-10-27T21:14:21.024Z</time></td><td>817</td><td>799</td><td>18</td><td>6 modificados</td></tr>
+<tr><td><time datetime="2026-10-27T16:28:21.936Z">2026-10-27T16:28:21.936Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-27T10:25:58.070Z">2026-10-27T10:25:58.070Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-27T04:52:58.655Z">2026-10-27T04:52:58.655Z</time></td><td>817</td><td>799</td><td>18</td><td>9 nuevos</td></tr>
+<tr><td><time datetime="2026-10-26T23:47:09.398Z">2026-10-26T23:47:09.398Z</time></td><td>809</td><td>790</td><td>19</td><td>103 nuevos, 1 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-26T19:11:53.260Z">2026-10-26T19:11:53.260Z</time></td><td>707</td><td>688</td><td>19</td><td>111 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-26T12:50:17.607Z">2026-10-26T12:50:17.607Z</time></td><td>817</td><td>799</td><td>18</td><td>5 nuevos</td></tr>
+<tr><td><time datetime="2026-10-26T06:02:29.313Z">2026-10-26T06:02:29.313Z</time></td><td>817</td><td>794</td><td>23</td><td>5 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-26T00:10:26.190Z">2026-10-26T00:10:26.190Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-25T21:41:04.310Z">2026-10-25T21:41:04.310Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-25T18:32:12.422Z">2026-10-25T18:32:12.422Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-25T17:29:29.524Z">2026-10-25T17:29:29.524Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-25T16:31:28.490Z">2026-10-25T16:31:28.490Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-25T15:30:43.588Z">2026-10-25T15:30:43.588Z</time></td><td>817</td><td>799</td><td>18</td><td>Sin cambios</td></tr>
+</tbody></table></div></details>
+<a class="tecnico" href="https://feedsexperimentality-boop.github.io/vtex-feeds/papajohns/estado.json" target="_blank">Estado técnico</a>
+</div>
+</section>
+<section class="tienda" id="tienda-plazacampo" data-slug="plazacampo">
+<header class="cabecera">
+  <div><h2>Plazacampo</h2><a href="https://www.plazacampo.com" target="_blank" rel="noopener">plazacampo.com</a></div>
+  <div class="chips"><span class="chip">Cada hora</span><span class="chip estado" data-estado="2026-10-31T18:07:00.000Z">Al día</span></div>
+</header>
+<div class="metricas">
+  <div class="metrica"><span>Última actualización</span><strong><time datetime="2026-10-31T17:39:54.335Z">2026-10-31T17:39:54.335Z</time></strong></div>
+  <div class="metrica"><span>Próxima (aprox.)</span><strong data-proxima="2026-10-31T18:07:00.000Z"><time datetime="2026-10-31T18:07:00.000Z">2026-10-31T18:07:00.000Z</time></strong></div>
+  <div class="metrica"><span>Cambios en el feed</span><strong>1 retirados (agotados o despublicados)</strong></div>
+  <div class="metrica"><span>Encontrados en VTEX</span><strong>361 <small>SKUs · 276 productos</small></strong></div>
+  <div class="metrica destacada"><span>Publicados con stock</span><strong>335</strong></div>
+  <div class="metrica"><span>Agotados · no se envían</span><strong>24</strong></div>
+</div>
+
+<details class="aviso"><summary>2 SKUs no se envían porque su página no existe en la tienda (error 404). Corrígelo en VTEX.</summary><p>En VTEX → Catálogo → Productos, abre cada producto y quita los espacios del campo <b>Texto del link</b>:</p><ul><li>ID 62 · Sabueso Cachorros Ext 15 Kg · <code>sabueso-cachorros-ext 15-kg-1-jpg</code></li><li>ID 65 · Sabueso  Adultos Ext 4 Kg · <code>sabueso -adultos-ext-4x4-kg-1-jpg</code></li></ul></details>
+
+<div class="feeds"><div class="feed"><span class="plataforma"><i class="marca marca-meta">M</i>Meta</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds/plazacampo/meta.csv" aria-label="Enlace Meta"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds/plazacampo/meta.csv">Copiar</button></div><div class="feed"><span class="plataforma"><i class="marca marca-tiktok">T</i>TikTok</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds/plazacampo/tiktok.csv" aria-label="Enlace TikTok"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds/plazacampo/tiktok.csv">Copiar</button></div><div class="feed"><span class="plataforma"><i class="marca marca-pinterest">P</i>Pinterest</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds/plazacampo/pinterest.csv" aria-label="Enlace Pinterest"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds/plazacampo/pinterest.csv">Copiar</button></div><div class="feed"><span class="plataforma"><i class="marca marca-google">G</i>Google Merchant Center</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds/plazacampo/google.xml" aria-label="Enlace Google Merchant Center"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds/plazacampo/google.xml">Copiar</button></div></div>
+<div class="exclusiones">
+  <div class="excl-cabecera"><strong>Exclusiones</strong>
+  <a class="enlace solo-admin" href="https://github.com/feedsexperimentality-boop/vtex-feeds/issues/new?template=excluir-productos.yml&tienda=plazacampo" target="_blank" rel="noopener">+ Excluir o volver a incluir</a></div>
+  
+  <p class="sutil">Sin exclusiones: se envían todos los productos con stock.</p>
+</div>
+<div class="pie-tarjeta">
+<details><summary>Historial de actualizaciones (30)</summary><div class="tabla"><table>
+<thead><tr><th>Fecha</th><th>Encontrados</th><th>Publicados</th><th>Agotados</th><th>Cambios</th></tr></thead><tbody>
+<tr><td><time datetime="2026-10-31T17:39:54.335Z">2026-10-31T17:39:54.335Z</time></td><td>361</td><td>335</td><td>24</td><td>1 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-31T12:14:11.262Z">2026-10-31T12:14:11.262Z</time></td><td>362</td><td>336</td><td>24</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-31T05:25:36.762Z">2026-10-31T05:25:36.762Z</time></td><td>362</td><td>336</td><td>24</td><td>1 nuevos</td></tr>
+<tr><td><time datetime="2026-10-30T23:39:26.232Z">2026-10-30T23:39:26.232Z</time></td><td>361</td><td>335</td><td>24</td><td>5 modificados, 2 nuevos, 1 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-30T19:14:08.707Z">2026-10-30T19:14:08.707Z</time></td><td>361</td><td>334</td><td>25</td><td>2 modificados, 2 nuevos, 1 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-30T14:01:58.051Z">2026-10-30T14:01:58.051Z</time></td><td>359</td><td>333</td><td>24</td><td>2 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-30T07:01:06.392Z">2026-10-30T07:01:06.392Z</time></td><td>361</td><td>335</td><td>24</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-30T00:50:27.462Z">2026-10-30T00:50:27.462Z</time></td><td>361</td><td>335</td><td>24</td><td>4 modificados, 4 nuevos</td></tr>
+<tr><td><time datetime="2026-10-29T20:13:01.351Z">2026-10-29T20:13:01.351Z</time></td><td>357</td><td>331</td><td>24</td><td>12 modificados, 5 nuevos, 2 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-29T14:09:29.818Z">2026-10-29T14:09:29.818Z</time></td><td>358</td><td>328</td><td>28</td><td>1 modificados, 1 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-29T06:58:17.595Z">2026-10-29T06:58:17.595Z</time></td><td>358</td><td>329</td><td>27</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-29T00:48:50.650Z">2026-10-29T00:48:50.650Z</time></td><td>358</td><td>329</td><td>27</td><td>8 modificados, 1 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-28T20:59:15.873Z">2026-10-28T20:59:15.873Z</time></td><td>359</td><td>330</td><td>27</td><td>5 modificados, 4 nuevos</td></tr>
+<tr><td><time datetime="2026-10-28T15:56:34.918Z">2026-10-28T15:56:34.918Z</time></td><td>356</td><td>326</td><td>28</td><td>3 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-28T08:20:01.368Z">2026-10-28T08:20:01.368Z</time></td><td>358</td><td>329</td><td>27</td><td>1 nuevos</td></tr>
+<tr><td><time datetime="2026-10-28T01:13:07.890Z">2026-10-28T01:13:07.890Z</time></td><td>357</td><td>328</td><td>27</td><td>4 modificados</td></tr>
+<tr><td><time datetime="2026-10-27T21:14:23.334Z">2026-10-27T21:14:23.334Z</time></td><td>357</td><td>328</td><td>27</td><td>7 modificados, 1 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-27T16:28:25.420Z">2026-10-27T16:28:25.420Z</time></td><td>358</td><td>329</td><td>27</td><td>3 modificados, 1 nuevos, 1 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-27T10:26:02.541Z">2026-10-27T10:26:02.541Z</time></td><td>358</td><td>329</td><td>27</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-27T04:53:02.157Z">2026-10-27T04:53:02.157Z</time></td><td>358</td><td>329</td><td>27</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-26T23:47:13.800Z">2026-10-26T23:47:13.800Z</time></td><td>358</td><td>329</td><td>27</td><td>7 modificados</td></tr>
+<tr><td><time datetime="2026-10-26T19:11:58.044Z">2026-10-26T19:11:58.044Z</time></td><td>358</td><td>329</td><td>27</td><td>6 modificados, 9 nuevos, 1 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-26T12:50:21.932Z">2026-10-26T12:50:21.932Z</time></td><td>349</td><td>321</td><td>26</td><td>4 modificados, 5 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-26T06:02:33.333Z">2026-10-26T06:02:33.333Z</time></td><td>354</td><td>326</td><td>26</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-26T00:10:29.306Z">2026-10-26T00:10:29.306Z</time></td><td>354</td><td>326</td><td>26</td><td>4 modificados</td></tr>
+<tr><td><time datetime="2026-10-25T21:41:06.629Z">2026-10-25T21:41:06.629Z</time></td><td>354</td><td>326</td><td>26</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-25T18:32:16.295Z">2026-10-25T18:32:16.295Z</time></td><td>354</td><td>326</td><td>26</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-25T17:29:31.918Z">2026-10-25T17:29:31.918Z</time></td><td>354</td><td>326</td><td>26</td><td>1 modificados</td></tr>
+<tr><td><time datetime="2026-10-25T16:31:31.333Z">2026-10-25T16:31:31.333Z</time></td><td>354</td><td>326</td><td>26</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-25T15:30:45.654Z">2026-10-25T15:30:45.654Z</time></td><td>354</td><td>326</td><td>26</td><td>Sin cambios</td></tr>
+</tbody></table></div></details>
+<a class="tecnico" href="https://feedsexperimentality-boop.github.io/vtex-feeds/plazacampo/estado.json" target="_blank">Estado técnico</a>
+</div>
+</section>
+<section class="tienda" id="tienda-lamarina" data-slug="lamarina">
+<header class="cabecera">
+  <div><h2>La Marina</h2><a href="https://www.lamarina.com.mx" target="_blank" rel="noopener">lamarina.com.mx</a></div>
+  <div class="chips"><span class="chip">Diaria</span><span class="chip estado" data-estado="2026-11-01T00:07:00.000Z">Al día</span></div>
+</header>
+<div class="metricas">
+  <div class="metrica"><span>Última actualización</span><strong><time datetime="2026-10-30T23:51:35.524Z">2026-10-30T23:51:35.524Z</time></strong></div>
+  <div class="metrica"><span>Próxima (aprox.)</span><strong data-proxima="2026-11-01T00:07:00.000Z"><time datetime="2026-11-01T00:07:00.000Z">2026-11-01T00:07:00.000Z</time></strong></div>
+  <div class="metrica"><span>Cambios en el feed</span><strong>509 modificados, 1181 nuevos, 825 retirados (agotados o despublicados)</strong></div>
+  <div class="metrica"><span>Encontrados en VTEX</span><strong>41.162 <small>SKUs · 21.883 productos</small></strong></div>
+  <div class="metrica destacada"><span>Publicados con stock</span><strong>40.579</strong></div>
+  <div class="metrica"><span>Agotados · no se envían</span><strong>531</strong></div>
+</div>
+
+<details class="aviso"><summary>52 SKUs no se envían porque su página no existe en la tienda (error 404). Corrígelo en VTEX.</summary><p>En VTEX → Catálogo → Productos, abre cada producto y quita los espacios del campo <b>Texto del link</b>:</p><ul><li>ID 3066172 · Aceite hidratante para labios Moira glow getter · <code>aceite-hidratante-para-labios-moira-glow-getter -glo015</code></li><li>ID 3057179 · Juego de mesa Uno liars · <code>juego-de-mesa-uno-liars -jlh43</code></li><li>ID 3057168 · Juego de mesa Uno all wild · <code>juego-de-mesa-uno-all-wild -hhl33</code></li><li>ID 2996833 · Reparador labial Isdin nutrabalm · <code>reparador-labial-isdin-nutrabalm -isd-hidd0003</code></li><li>ID 3032626 · Armable Lego trofeo oficial de la copa mundial de la FIFA · <code>armable-lego-trofeo-oficial-de-la-copa-mundial-de-la-fifa -43020</code></li><li>ID 3063894 · Muñeca Barbie fashionistas inclusiva · <code>muneca-barbie-fashionistas inclusiva--jjn58</code></li><li>ID 2691551 · Jabón dermatologico Bioderma Atoderma · <code>jabon-dermatologico-bioderma-atoderma -bio-atod0001</code></li><li>ID 3071278 · Figura de acción Wwe penta zero miedo · <code>figura-de-accion-wwe-penta-zero-miedo -jhj02</code></li><li>ID 3057105 · Muñeca Barbie astronauta · <code>muneca-barbie-astronauta -jkf77</code></li><li>ID 3048172 · Pista de acrobacias Hot Wheels stunt tracks  multicolor · <code>pista-de-acrobacias-hot-wheels-stunt-tracks -multicolor-jhk76</code></li><li>ID 3058601 · Sérum ultrahidratante Moira hyaluronic 10 complex · <code>serum-ultrahidratante-moira-hyaluronic-10-complex -hys001</code></li><li>ID 3001893 · Armable Lego camión de bomberos con escalera · <code>armable-lego-camion-de-bomberos-con-escalera -60463</code></li><li>ID 3001855 · Armable Lego spidey spin y electro: duelo de vehículos dinosaurio  11198 · <code>armable-lego-spidey-spin-y-electro--duelo-de-vehiculos-dinosaurio -11198</code></li><li>ID 3076140 · Máscara Jurassic World giganotosaurus · <code>mascara-jurassic-world-giganotosaurus -jmv90</code></li><li>ID 3076136 · Set de figuras Dc Comics batcopter vs man-bat · <code>set-de-figuras-dc-comics-batcopter-vs-man-bat -jml97</code></li><li>ID 3063211 · Armable Lego ford mustang hoonicorn v1 de ken block · <code>armable-lego-ford-mustang-hoonicorn-v1-de-ken-block -77262</code></li><li>ID 3070840 · Tina de baño Prinsel atlantis rosa 7297 · <code>tina-de-bano-prinsel-atlantis rosa-7297</code></li><li>ID 3070839 · Tina de baño Prinsel atlantis azul 7292 · <code>tina-de-bano-prinsel-atlantis azul-7292</code></li><li>ID 3066787 · Vino blanco Casa Madero chardonnay 750 ml · <code>vino-blanco-casa-madero-chardonnay-750 ml-1550</code></li><li>ID 3059649 · Cangurera Nike heritage 2.0 verde · <code>cangurera-nike-heritage 2-0-verde-ib4376320</code></li><li>ID 3063152 · Armable Lego minecraft aventura de la primera noche · <code>armable-lego-minecraft-aventura-de-la-primera-noche -21593</code></li><li>ID 3015507 · Set de juego Hasbro beyblade x beystadium  negro g0841 · <code>set-de-juego-hasbro-beyblade-x-beystadium -negro-g0841</code></li><li>ID 3063206 · Armable Lego fortnite entrega de suministros · <code>armable-lego-fortnite-entrega-de-suministros -77080</code></li><li>ID 3062156 · Crema corporal Mustela relipidizante 300 ml · <code>crema-corporal-mustela-relipidizante 300-ml-mus-atod0001</code></li><li>ID 3038280 · Brillo labial Estée Lauder Glossy Pout Lip Oil · <code>brillo-labial-estee-lauder-glossy-pout-lip-oil -gbg5070000</code></li><li>ID 3038279 · Brillo labial Estée Lauder Glossy Pout Lip Oil · <code>brillo-labial-estee-lauder-glossy-pout-lip-oil -gbg5040000</code></li><li>ID 3038278 · Brillo labial Estée Lauder Glossy Pout Lip Oil · <code>brillo-labial-estee-lauder-glossy-pout-lip-oil -gbg5030000</code></li><li>ID 3038277 · Brillo labial Estée Lauder Glossy Pout Lip Oil · <code>brillo-labial-estee-lauder-glossy-pout-lip-oil -gbg5020000</code></li><li>ID 3038276 · Brillo labial Estée Lauder Glossy Pout Lip Oil · <code>brillo-labial-estee-lauder-glossy-pout-lip-oil -gbg5010000</code></li><li>ID 3048171 · Pista de acrobacias Hot Wheels stunt tracks  multicolor · <code>pista-de-acrobacias-hot-wheels-stunt-tracks -multicolor-jhk73</code></li><li>ID 3038575 · Estuche Shakira Dance Midnight Muse  para dama EDT · <code>estuche-shakira-dance-midnight-muse -para-dama-edt-65228803</code></li><li>ID 3007988 · Sérum facial Isdin Hyaluronic Concentrate · <code>serum-facial-isdin-hyaluronic-concentrate -isd-antd0022</code></li><li>ID 2905625 · Serum ultra suero facial anti-imperfecciones La Roche Posay Effaclar · <code>serum-ultra-suero-facial-anti-imperfecciones-la-roche-posay-effaclar -roc-grad0035</code></li><li>ID 3069229 · Olla de cocción Hamilton Beach multifuncional  plateado · <code>olla-de-coccion-hamilton-beach-multifuncional -plateado</code></li><li>ID 2752569 · Cepillo eléctrico Gama Italy keration 3d · <code>cepillo-electrico-gama-italy-keration-3d h-mod-styl-ker</code></li><li>ID 2915629 · Crema B3 anti-manchas Vichy Liftactiv · <code>crema-b3-anti-manchas-vichy-liftactiv -vic-antd0092</code></li><li>ID 3039091 · Perfume Donna Karan Be Delicious Latte Pistachio  para dama EDP · <code>perfume-donna-karan-be-delicious-latte-pistachio -para-dama-edp-96264g</code></li><li>ID 3038619 · Estuche Benetton Sisterland Yellow Peony  para dama EDT · <code>estuche-benetton-sisterland-yellow-peony -para-dama-edt-65235053</code></li><li>ID 3038618 · Estuche Benetton Red Rose para dama EDT · <code>estuche-benetton- red-rose-para-dama-edt-65235052</code></li><li>ID 3041552 · Estuche Jesus Del Pozo Halloween man para caballero · <code>estuche-jesus-del-pozo-halloween man-para-caballero-1146047</code></li><li>ID 2929026 · Zapato de fútbol Puma rosa para joven · <code>zapato de-futbol-para-joven-puma-rosa-107729-03</code></li><li>ID 2915630 · Crema de noche Vichy neovadiol · <code>crema-de-noche-vichy-neovadiol -vic-antd0094</code></li><li>ID 3069057 · Estuche Giorgio Armani  di gio discovery para caballero · <code>estuche-giorgio-armani- di-gio-discovery-para-caballero-tmx06839</code></li><li>ID 3007986 · Sérum reparador de noche Isdin Isdinceutics Melatonik · <code>serum-reparador-de-noche-isdin-isdinceutics-melatonik -isd-antd0020</code></li><li>ID 3071829 · Perfume Paco Rabanne olympéa  para dama EDP · <code>perfume-paco-rabanne-olympea -para-dama-edp</code></li><li>ID 3065402 · Perfume Carolina Herrera bad boy cobalt absolute  para caballero EDP · <code>perfume-carolina-herrera-bad-boy-cobalt-absolute -para-caballero-edp-65227863</code></li><li>ID 3045466 · Perfume Ralph Lauren  Polo Est. 67 Extreme para caballero EDP · <code>perfume-ralph-lauren- polo-est-67-extreme-para-caballero-edp-s6235101</code></li><li>ID 2890403 · Perfume Dolce &amp; Gabbana devotion para dama EDP · <code>perfume-para-dama-dolce-gabbana-devotion -edp-1g90310001</code></li><li>ID 2944114 · Perfume Lacoste original  para caballero EDP · <code>perfume-para-caballero-lacoste-original -edp-1lsl016a01</code></li><li>ID 3036088 · Perfume Jean Paul Gaultier La Belle Rosea  para dama EDP · <code>perfume-jean-paul-gaultier-la-belle-rosea -para-dama-edp-65227993</code></li></ul></details>
+
+<div class="feeds"><div class="feed"><span class="plataforma"><i class="marca marca-meta">M</i>Meta</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds-espacio-1/lamarina/meta.csv" aria-label="Enlace Meta"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds-espacio-1/lamarina/meta.csv">Copiar</button></div><div class="feed"><span class="plataforma"><i class="marca marca-tiktok">T</i>TikTok</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds-espacio-1/lamarina/tiktok.csv" aria-label="Enlace TikTok"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds-espacio-1/lamarina/tiktok.csv">Copiar</button></div><div class="feed"><span class="plataforma"><i class="marca marca-pinterest">P</i>Pinterest</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds-espacio-1/lamarina/pinterest.csv" aria-label="Enlace Pinterest"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds-espacio-1/lamarina/pinterest.csv">Copiar</button></div><div class="feed"><span class="plataforma"><i class="marca marca-google">G</i>Google Merchant Center</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds-espacio-1/lamarina/google.xml" aria-label="Enlace Google Merchant Center"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds-espacio-1/lamarina/google.xml">Copiar</button></div></div>
+<div class="exclusiones">
+  <div class="excl-cabecera"><strong>Exclusiones</strong>
+  <a class="enlace solo-admin" href="https://github.com/feedsexperimentality-boop/vtex-feeds/issues/new?template=excluir-productos.yml&tienda=lamarina" target="_blank" rel="noopener">+ Excluir o volver a incluir</a></div>
+  
+  <p class="sutil">Sin exclusiones: se envían todos los productos con stock.</p>
+</div>
+<div class="pie-tarjeta">
+<details><summary>Historial de actualizaciones (30)</summary><div class="tabla"><table>
+<thead><tr><th>Fecha</th><th>Encontrados</th><th>Publicados</th><th>Agotados</th><th>Cambios</th></tr></thead><tbody>
+<tr><td><time datetime="2026-10-30T23:51:35.524Z">2026-10-30T23:51:35.524Z</time></td><td>41.162</td><td>40.579</td><td>531</td><td>509 modificados, 1181 nuevos, 825 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-29T20:20:32.207Z">2026-10-29T20:20:32.207Z</time></td><td>41.296</td><td>40.223</td><td>1.020</td><td>6748 modificados, 232 nuevos, 869 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-28T16:05:11.203Z">2026-10-28T16:05:11.203Z</time></td><td>41.692</td><td>40.860</td><td>781</td><td>80 modificados, 259 nuevos, 30 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-27T10:38:13.357Z">2026-10-27T10:38:13.357Z</time></td><td>41.103</td><td>40.631</td><td>421</td><td>98 modificados, 968 nuevos, 351 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-26T06:16:57.301Z">2026-10-26T06:16:57.301Z</time></td><td>40.656</td><td>40.014</td><td>591</td><td>2 modificados, 72 nuevos, 101 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-25T00:55:38.017Z">2026-10-25T00:55:38.017Z</time></td><td>40.626</td><td>40.043</td><td>532</td><td>85 modificados, 763 nuevos, 9 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-24T01:05:03.964Z">2026-10-24T01:05:03.964Z</time></td><td>39.846</td><td>39.289</td><td>506</td><td>42 modificados, 742 nuevos, 1506 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-23T01:02:56.368Z">2026-10-23T01:02:56.368Z</time></td><td>40.718</td><td>40.053</td><td>614</td><td>37 modificados, 397 nuevos, 7 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-22T00:59:33.160Z">2026-10-22T00:59:33.160Z</time></td><td>40.223</td><td>39.663</td><td>514</td><td>56 modificados, 475 nuevos, 587 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-21T00:58:15.571Z">2026-10-21T00:58:15.571Z</time></td><td>40.194</td><td>39.775</td><td>377</td><td>65 modificados, 875 nuevos, 15 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-20T00:58:36.425Z">2026-10-20T00:58:36.425Z</time></td><td>39.348</td><td>38.915</td><td>391</td><td>1529 modificados, 202 nuevos, 1872 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-19T00:57:35.210Z">2026-10-19T00:57:35.210Z</time></td><td>41.193</td><td>40.585</td><td>563</td><td>252 modificados, 95 nuevos, 183 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-18T00:56:21.884Z">2026-10-18T00:56:21.884Z</time></td><td>41.192</td><td>40.673</td><td>474</td><td>174 modificados, 517 nuevos, 22 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-17T00:56:08.726Z">2026-10-17T00:56:08.726Z</time></td><td>40.623</td><td>40.178</td><td>402</td><td>439 modificados, 1144 nuevos, 620 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-16T00:55:38.762Z">2026-10-16T00:55:38.762Z</time></td><td>40.191</td><td>39.654</td><td>495</td><td>328 modificados, 530 nuevos, 121 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-14T23:42:25.017Z">2026-10-14T23:42:25.017Z</time></td><td>39.725</td><td>39.245</td><td>438</td><td>66 modificados, 524 nuevos, 1384 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-13T23:44:59.476Z">2026-10-13T23:44:59.476Z</time></td><td>40.593</td><td>40.105</td><td>445</td><td>956 modificados, 1255 nuevos, 310 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-12T23:36:36.782Z">2026-10-12T23:36:36.782Z</time></td><td>39.817</td><td>39.160</td><td>615</td><td>127 modificados, 30 nuevos, 110 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-11T23:33:23.749Z">2026-10-11T23:33:23.749Z</time></td><td>39.834</td><td>39.240</td><td>552</td><td>12 modificados, 4 nuevos, 13 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-10T23:30:59.446Z">2026-10-10T23:30:59.446Z</time></td><td>39.836</td><td>39.249</td><td>545</td><td>64 modificados, 335 nuevos, 191 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-09T22:34:21.012Z">2026-10-09T22:34:21.012Z</time></td><td>39.624</td><td>39.105</td><td>477</td><td>232 modificados, 435 nuevos, 412 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-08T22:33:23.946Z">2026-10-08T22:33:23.946Z</time></td><td>39.549</td><td>39.082</td><td>427</td><td>1470 modificados, 421 nuevos, 331 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-07T21:34:30.463Z">2026-10-07T21:34:30.463Z</time></td><td>39.782</td><td>38.992</td><td>749</td><td>2877 modificados, 18 nuevos, 117 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-06T21:31:43.582Z">2026-10-06T21:31:43.582Z</time></td><td>39.798</td><td>39.091</td><td>667</td><td>28898 modificados, 660 nuevos, 75 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-05T21:37:43.144Z">2026-10-05T21:37:43.144Z</time></td><td>39.165</td><td>38.506</td><td>619</td><td>571 modificados, 101 nuevos, 101 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-04T20:30:22.140Z">2026-10-04T20:30:22.140Z</time></td><td>39.073</td><td>38.506</td><td>527</td><td>15 modificados, 7 nuevos, 84 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-03T19:47:28.858Z">2026-10-03T19:47:28.858Z</time></td><td>39.070</td><td>38.583</td><td>447</td><td>85 modificados, 229 nuevos, 1419 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-02T18:37:37.577Z">2026-10-02T18:37:37.577Z</time></td><td>40.476</td><td>39.773</td><td>660</td><td>290 modificados, 1194 nuevos, 218 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-01T18:38:23.107Z">2026-10-01T18:38:23.107Z</time></td><td>39.712</td><td>38.797</td><td>873</td><td>428 modificados, 846 nuevos, 231 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-09-30T18:35:22.843Z">2026-09-30T18:35:22.843Z</time></td><td>38.992</td><td>38.182</td><td>766</td><td>308 modificados, 245 nuevos, 119 retirados (agotados o despublicados)</td></tr>
+</tbody></table></div></details>
+<a class="tecnico" href="https://feedsexperimentality-boop.github.io/vtex-feeds-espacio-1/lamarina/estado.json" target="_blank">Estado técnico</a>
+</div>
+</section>
+<section class="tienda" id="tienda-ragged" data-slug="ragged">
+<header class="cabecera">
+  <div><h2>Ragged</h2><a href="https://www.ragged.com.co" target="_blank" rel="noopener">ragged.com.co</a></div>
+  <div class="chips"><span class="chip">Cada hora</span><span class="chip estado" data-estado="2026-10-31T18:07:00.000Z">Al día</span></div>
+</header>
+<div class="metricas">
+  <div class="metrica"><span>Última actualización</span><strong><time datetime="2026-10-31T17:40:09.444Z">2026-10-31T17:40:09.444Z</time></strong></div>
+  <div class="metrica"><span>Próxima (aprox.)</span><strong data-proxima="2026-10-31T18:07:00.000Z"><time datetime="2026-10-31T18:07:00.000Z">2026-10-31T18:07:00.000Z</time></strong></div>
+  <div class="metrica"><span>Cambios en el feed</span><strong>19 retirados (agotados o despublicados)</strong></div>
+  <div class="metrica"><span>Encontrados en VTEX</span><strong>7.602 <small>SKUs · 1.338 productos</small></strong></div>
+  <div class="metrica destacada"><span>Publicados con stock</span><strong>7.349</strong></div>
+  <div class="metrica"><span>Agotados · no se envían</span><strong>253</strong></div>
+</div>
+
+
+
+<div class="feeds"><div class="feed"><span class="plataforma"><i class="marca marca-meta">M</i>Meta</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds/ragged/meta.csv" aria-label="Enlace Meta"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds/ragged/meta.csv">Copiar</button></div><div class="feed"><span class="plataforma"><i class="marca marca-tiktok">T</i>TikTok</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds/ragged/tiktok.csv" aria-label="Enlace TikTok"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds/ragged/tiktok.csv">Copiar</button></div><div class="feed"><span class="plataforma"><i class="marca marca-pinterest">P</i>Pinterest</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds/ragged/pinterest.csv" aria-label="Enlace Pinterest"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds/ragged/pinterest.csv">Copiar</button></div><div class="feed"><span class="plataforma"><i class="marca marca-google">G</i>Google Merchant Center</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds/ragged/google.xml" aria-label="Enlace Google Merchant Center"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds/ragged/google.xml">Copiar</button></div></div>
+<div class="exclusiones">
+  <div class="excl-cabecera"><strong>Exclusiones</strong>
+  <a class="enlace solo-admin" href="https://github.com/feedsexperimentality-boop/vtex-feeds/issues/new?template=excluir-productos.yml&tienda=ragged" target="_blank" rel="noopener">+ Excluir o volver a incluir</a></div>
+  
+  <p class="sutil">Sin exclusiones: se envían todos los productos con stock.</p>
+</div>
+<div class="pie-tarjeta">
+<details><summary>Historial de actualizaciones (30)</summary><div class="tabla"><table>
+<thead><tr><th>Fecha</th><th>Encontrados</th><th>Publicados</th><th>Agotados</th><th>Cambios</th></tr></thead><tbody>
+<tr><td><time datetime="2026-10-31T17:40:09.444Z">2026-10-31T17:40:09.444Z</time></td><td>7.602</td><td>7.349</td><td>253</td><td>19 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-31T12:14:23.557Z">2026-10-31T12:14:23.557Z</time></td><td>7.605</td><td>7.368</td><td>237</td><td>1 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-31T05:25:44.539Z">2026-10-31T05:25:44.539Z</time></td><td>7.605</td><td>7.369</td><td>236</td><td>2 nuevos, 17 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-30T23:39:41.977Z">2026-10-30T23:39:41.977Z</time></td><td>7.608</td><td>7.384</td><td>224</td><td>18 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-30T19:14:16.669Z">2026-10-30T19:14:16.669Z</time></td><td>7.611</td><td>7.402</td><td>209</td><td>70 modificados, 2 nuevos, 20 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-30T14:02:11.970Z">2026-10-30T14:02:11.970Z</time></td><td>7.611</td><td>7.420</td><td>191</td><td>226 modificados, 46 nuevos, 9 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-30T07:01:19.927Z">2026-10-30T07:01:19.927Z</time></td><td>7.566</td><td>7.383</td><td>183</td><td>1214 modificados, 51 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-30T00:50:36.152Z">2026-10-30T00:50:36.152Z</time></td><td>7.613</td><td>7.434</td><td>179</td><td>1 nuevos, 7 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-29T20:13:08.373Z">2026-10-29T20:13:08.373Z</time></td><td>7.618</td><td>7.440</td><td>178</td><td>22 modificados, 2 nuevos, 27 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-29T14:09:41.524Z">2026-10-29T14:09:41.524Z</time></td><td>7.620</td><td>7.465</td><td>155</td><td>2 modificados, 4 nuevos, 6 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-29T06:58:27.664Z">2026-10-29T06:58:27.664Z</time></td><td>7.620</td><td>7.467</td><td>153</td><td>17 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-29T00:49:00.174Z">2026-10-29T00:49:00.174Z</time></td><td>7.624</td><td>7.484</td><td>140</td><td>2 nuevos, 6 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-28T20:59:33.146Z">2026-10-28T20:59:33.146Z</time></td><td>7.625</td><td>7.488</td><td>137</td><td>30 modificados, 4 nuevos, 13 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-28T15:56:45.229Z">2026-10-28T15:56:45.229Z</time></td><td>7.626</td><td>7.497</td><td>129</td><td>6 nuevos, 6 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-28T08:20:07.401Z">2026-10-28T08:20:07.401Z</time></td><td>7.626</td><td>7.497</td><td>129</td><td>8 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-28T01:13:16.143Z">2026-10-28T01:13:16.143Z</time></td><td>7.627</td><td>7.505</td><td>122</td><td>7 nuevos, 16 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-27T21:14:32.241Z">2026-10-27T21:14:32.241Z</time></td><td>7.624</td><td>7.514</td><td>110</td><td>33 modificados, 2 nuevos, 10 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-27T16:28:39.492Z">2026-10-27T16:28:39.492Z</time></td><td>7.668</td><td>7.522</td><td>146</td><td>226 modificados, 6 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-27T10:26:13.614Z">2026-10-27T10:26:13.614Z</time></td><td>7.739</td><td>7.528</td><td>211</td><td>1079 modificados, 2 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-27T04:53:14.549Z">2026-10-27T04:53:14.549Z</time></td><td>7.741</td><td>7.530</td><td>211</td><td>2 nuevos, 11 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-26T23:47:22.898Z">2026-10-26T23:47:22.898Z</time></td><td>7.746</td><td>7.539</td><td>207</td><td>1133 modificados, 14 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-26T19:12:11.593Z">2026-10-26T19:12:11.593Z</time></td><td>7.748</td><td>7.553</td><td>195</td><td>844 modificados, 135 nuevos, 34 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-26T12:50:37.933Z">2026-10-26T12:50:37.933Z</time></td><td>7.628</td><td>7.452</td><td>176</td><td>2 nuevos, 3 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-26T06:02:41.882Z">2026-10-26T06:02:41.882Z</time></td><td>7.626</td><td>7.453</td><td>173</td><td>3 nuevos, 13 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-26T00:10:38.908Z">2026-10-26T00:10:38.908Z</time></td><td>7.627</td><td>7.463</td><td>164</td><td>1 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-25T21:41:16.310Z">2026-10-25T21:41:16.310Z</time></td><td>7.627</td><td>7.464</td><td>163</td><td>1 nuevos, 6 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-25T18:32:31.815Z">2026-10-25T18:32:31.815Z</time></td><td>7.628</td><td>7.469</td><td>159</td><td>1 nuevos, 1 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-25T17:29:41.875Z">2026-10-25T17:29:41.875Z</time></td><td>7.627</td><td>7.469</td><td>158</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-25T16:31:42.076Z">2026-10-25T16:31:42.076Z</time></td><td>7.628</td><td>7.469</td><td>159</td><td>4 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-25T15:30:59.884Z">2026-10-25T15:30:59.884Z</time></td><td>7.628</td><td>7.473</td><td>155</td><td>1 modificados, 1 retirados (agotados o despublicados)</td></tr>
+</tbody></table></div></details>
+<a class="tecnico" href="https://feedsexperimentality-boop.github.io/vtex-feeds/ragged/estado.json" target="_blank">Estado técnico</a>
+</div>
+</section>
+<section class="tienda" id="tienda-benet" data-slug="benet">
+<header class="cabecera">
+  <div><h2>Benet</h2><a href="https://www.benet.com.co" target="_blank" rel="noopener">benet.com.co</a></div>
+  <div class="chips"><span class="chip">Cada hora</span><span class="chip estado" data-estado="2026-10-31T18:07:00.000Z">Al día</span></div>
+</header>
+<div class="metricas">
+  <div class="metrica"><span>Última actualización</span><strong><time datetime="2026-10-31T17:39:42.733Z">2026-10-31T17:39:42.733Z</time></strong></div>
+  <div class="metrica"><span>Próxima (aprox.)</span><strong data-proxima="2026-10-31T18:07:00.000Z"><time datetime="2026-10-31T18:07:00.000Z">2026-10-31T18:07:00.000Z</time></strong></div>
+  <div class="metrica"><span>Cambios en el feed</span><strong>Sin cambios</strong></div>
+  <div class="metrica"><span>Encontrados en VTEX</span><strong>71 <small>SKUs · 71 productos</small></strong></div>
+  <div class="metrica destacada"><span>Publicados con stock</span><strong>69</strong></div>
+  <div class="metrica"><span>Agotados · no se envían</span><strong>2</strong></div>
+</div>
+
+
+<p class="aviso">4 SKUs llegan sin impuesto mientras el resto sí lo trae: revisa que su precio coincida con la tienda.</p>
+<div class="feeds"><div class="feed"><span class="plataforma"><i class="marca marca-meta">M</i>Meta</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds/benet/meta.csv" aria-label="Enlace Meta"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds/benet/meta.csv">Copiar</button></div><div class="feed"><span class="plataforma"><i class="marca marca-tiktok">T</i>TikTok</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds/benet/tiktok.csv" aria-label="Enlace TikTok"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds/benet/tiktok.csv">Copiar</button></div><div class="feed"><span class="plataforma"><i class="marca marca-pinterest">P</i>Pinterest</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds/benet/pinterest.csv" aria-label="Enlace Pinterest"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds/benet/pinterest.csv">Copiar</button></div><div class="feed"><span class="plataforma"><i class="marca marca-google">G</i>Google Merchant Center</span><input readonly value="https://feedsexperimentality-boop.github.io/vtex-feeds/benet/google.xml" aria-label="Enlace Google Merchant Center"><button type="button" class="copiar" data-copiar="https://feedsexperimentality-boop.github.io/vtex-feeds/benet/google.xml">Copiar</button></div></div>
+<div class="exclusiones">
+  <div class="excl-cabecera"><strong>Exclusiones</strong>
+  <a class="enlace solo-admin" href="https://github.com/feedsexperimentality-boop/vtex-feeds/issues/new?template=excluir-productos.yml&tienda=benet" target="_blank" rel="noopener">+ Excluir o volver a incluir</a></div>
+  
+  <p class="sutil">Sin exclusiones: se envían todos los productos con stock.</p>
+</div>
+<div class="pie-tarjeta">
+<details><summary>Historial de actualizaciones (30)</summary><div class="tabla"><table>
+<thead><tr><th>Fecha</th><th>Encontrados</th><th>Publicados</th><th>Agotados</th><th>Cambios</th></tr></thead><tbody>
+<tr><td><time datetime="2026-10-31T17:39:42.733Z">2026-10-31T17:39:42.733Z</time></td><td>71</td><td>69</td><td>2</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-31T12:13:59.530Z">2026-10-31T12:13:59.530Z</time></td><td>71</td><td>69</td><td>2</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-31T05:25:28.256Z">2026-10-31T05:25:28.256Z</time></td><td>71</td><td>69</td><td>2</td><td>1 modificados</td></tr>
+<tr><td><time datetime="2026-10-30T23:39:14.087Z">2026-10-30T23:39:14.087Z</time></td><td>71</td><td>69</td><td>2</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-30T19:13:55.001Z">2026-10-30T19:13:55.001Z</time></td><td>71</td><td>69</td><td>2</td><td>1 modificados</td></tr>
+<tr><td><time datetime="2026-10-30T14:01:45.196Z">2026-10-30T14:01:45.196Z</time></td><td>71</td><td>69</td><td>2</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-30T07:00:56.475Z">2026-10-30T07:00:56.475Z</time></td><td>71</td><td>69</td><td>2</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-30T00:50:15.827Z">2026-10-30T00:50:15.827Z</time></td><td>71</td><td>69</td><td>2</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-29T20:12:54.270Z">2026-10-29T20:12:54.270Z</time></td><td>71</td><td>69</td><td>2</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-29T14:09:19.425Z">2026-10-29T14:09:19.425Z</time></td><td>71</td><td>69</td><td>2</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-29T06:58:09.519Z">2026-10-29T06:58:09.519Z</time></td><td>71</td><td>69</td><td>2</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-29T00:48:44.036Z">2026-10-29T00:48:44.036Z</time></td><td>71</td><td>69</td><td>2</td><td>1 nuevos</td></tr>
+<tr><td><time datetime="2026-10-28T20:59:02.581Z">2026-10-28T20:59:02.581Z</time></td><td>71</td><td>68</td><td>3</td><td>1 retirados (agotados o despublicados)</td></tr>
+<tr><td><time datetime="2026-10-28T15:56:25.651Z">2026-10-28T15:56:25.651Z</time></td><td>71</td><td>69</td><td>2</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-28T08:19:56.432Z">2026-10-28T08:19:56.432Z</time></td><td>71</td><td>69</td><td>2</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-28T01:12:57.896Z">2026-10-28T01:12:57.896Z</time></td><td>71</td><td>69</td><td>2</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-27T21:14:13.272Z">2026-10-27T21:14:13.272Z</time></td><td>71</td><td>69</td><td>2</td><td>2 modificados</td></tr>
+<tr><td><time datetime="2026-10-27T16:28:12.831Z">2026-10-27T16:28:12.831Z</time></td><td>71</td><td>69</td><td>2</td><td>3 modificados</td></tr>
+<tr><td><time datetime="2026-10-27T10:25:50.095Z">2026-10-27T10:25:50.095Z</time></td><td>71</td><td>69</td><td>2</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-27T04:52:50.445Z">2026-10-27T04:52:50.445Z</time></td><td>71</td><td>69</td><td>2</td><td>1 nuevos</td></tr>
+<tr><td><time datetime="2026-10-26T23:47:10.399Z">2026-10-26T23:47:10.399Z</time></td><td>71</td><td>68</td><td>3</td><td>1 modificados</td></tr>
+<tr><td><time datetime="2026-10-26T19:11:44.852Z">2026-10-26T19:11:44.852Z</time></td><td>71</td><td>68</td><td>3</td><td>14 modificados</td></tr>
+<tr><td><time datetime="2026-10-26T12:50:08.313Z">2026-10-26T12:50:08.313Z</time></td><td>71</td><td>68</td><td>3</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-26T06:02:20.295Z">2026-10-26T06:02:20.295Z</time></td><td>71</td><td>68</td><td>3</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-26T00:10:21.660Z">2026-10-26T00:10:21.660Z</time></td><td>71</td><td>68</td><td>3</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-25T21:40:59.354Z">2026-10-25T21:40:59.354Z</time></td><td>71</td><td>68</td><td>3</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-25T18:32:06.263Z">2026-10-25T18:32:06.263Z</time></td><td>71</td><td>68</td><td>3</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-25T17:29:24.037Z">2026-10-25T17:29:24.037Z</time></td><td>71</td><td>68</td><td>3</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-25T16:31:21.318Z">2026-10-25T16:31:21.318Z</time></td><td>71</td><td>68</td><td>3</td><td>Sin cambios</td></tr>
+<tr><td><time datetime="2026-10-25T15:30:33.283Z">2026-10-25T15:30:33.283Z</time></td><td>71</td><td>68</td><td>3</td><td>Sin cambios</td></tr>
+</tbody></table></div></details>
+<a class="tecnico" href="https://feedsexperimentality-boop.github.io/vtex-feeds/benet/estado.json" target="_blank">Estado técnico</a>
+</div>
+</section></div>
+</div>
+</main>
+<footer>
+  <span class="solo-admin"><a href="https://github.com/feedsexperimentality-boop/vtex-feeds/actions" target="_blank" rel="noopener">Ver ejecuciones</a> ·
+  <a href="https://github.com/feedsexperimentality-boop/vtex-feeds/edit/main/tiendas.json" target="_blank" rel="noopener">Editar tiendas</a> ·</span>
+  Hecho por <a href="https://www.experimentality.co/es" target="_blank" rel="noopener">Experimentality</a>
+</footer>
+<script>
+document.querySelectorAll('time').forEach(function (t) {
+  var d = new Date(t.getAttribute('datetime'));
+  if (!isNaN(d)) t.textContent = d.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+});
+// Si la próxima actualización ya debió ocurrir hace más de 2 horas, se marca como atrasada.
+// Modo administrador: se activa con ?admin=expe y se desactiva con ?admin=salir; lo recuerda el navegador.
+(function () {
+  var p = new URLSearchParams(location.search).get('admin');
+  try {
+    if (p === 'expe') localStorage.setItem('feeds-admin', '1');
+    if (p === 'salir') localStorage.removeItem('feeds-admin');
+    if (localStorage.getItem('feeds-admin') === '1') document.body.classList.add('admin');
+  } catch (e) {}
+  if (p) history.replaceState(null, '', location.pathname + location.hash);
+})();
+var atrasada = function (iso) { return Date.now() - new Date(iso).getTime() > 2 * 3600e3; };
+document.querySelectorAll('[data-proxima]').forEach(function (el) {
+  if (atrasada(el.getAttribute('data-proxima'))) { el.classList.add('atrasada'); el.insertAdjacentText('beforeend', ' · atrasada'); }
+});
+document.querySelectorAll('[data-estado]').forEach(function (el) {
+  if (!atrasada(el.getAttribute('data-estado'))) return;
+  el.classList.add('atrasada');
+  if (el.classList.contains('chip')) el.textContent = 'Atrasada';
+});
+
+// Lista lateral: muestra una tienda a la vez y recuerda la última elegida.
+var tarjetas = document.querySelectorAll('.detalle .tienda');
+var items = document.querySelectorAll('[data-abrir]');
+function abrir(slug, desplazar) {
+  var existe = document.getElementById('tienda-' + slug);
+  if (!existe) slug = items.length ? items[0].getAttribute('data-abrir') : '';
+  tarjetas.forEach(function (t) { t.hidden = t.getAttribute('data-slug') !== slug; });
+  items.forEach(function (i) { i.classList.toggle('activo', i.getAttribute('data-abrir') === slug); });
+  try { localStorage.setItem('feeds-tienda', slug); } catch (e) {}
+  if (location.hash !== '#' + slug) history.replaceState(null, '', '#' + slug);
+  if (desplazar && window.innerWidth <= 860) document.querySelector('.detalle').scrollIntoView({ behavior: 'smooth' });
+}
+items.forEach(function (i) { i.addEventListener('click', function () { abrir(i.getAttribute('data-abrir'), true); }); });
+var guardada = ''; try { guardada = localStorage.getItem('feeds-tienda') || ''; } catch (e) {}
+abrir(decodeURIComponent(location.hash.slice(1)) || guardada, false);
+window.addEventListener('hashchange', function () { abrir(decodeURIComponent(location.hash.slice(1)), false); });
+
+var buscar = document.querySelector('.buscar');
+if (buscar) buscar.addEventListener('input', function () {
+  var q = buscar.value.trim().toLowerCase(), visibles = 0;
+  items.forEach(function (i) { var ok = i.getAttribute('data-buscar').indexOf(q) >= 0; i.hidden = !ok; if (ok) visibles++; });
+  document.querySelector('.sin-resultados').hidden = visibles > 0;
+});
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('[data-copiar]');
+  if (!b) return;
+  var listo = function () { b.textContent = 'Copiado'; b.classList.add('ok'); setTimeout(function () { b.textContent = 'Copiar'; b.classList.remove('ok'); }, 1500); };
+  if (navigator.clipboard) navigator.clipboard.writeText(b.dataset.copiar).then(listo, function () { b.previousElementSibling.select(); });
+  else { b.previousElementSibling.select(); document.execCommand('copy'); listo(); }
+});
+</script>
+</body>
+</html>
