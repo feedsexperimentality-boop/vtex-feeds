@@ -118,6 +118,10 @@
       "Free_local_listings",
       "Local_inventory_ads"
     ],
+    "google_extras": [
+      "material",
+      "product_detail"
+    ],
     "titulos_variaciones": true
   },
   {

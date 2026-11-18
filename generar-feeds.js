@@ -786,6 +786,11 @@ function agregarItems(p, t, items, vistos, fuentes, conteo) {
       categoria: categoria(p),
       color: (variacionesSku(sku).find((v) => /color/i.test(v.nombre)) || {}).valor || '',
       talla: (variacionesSku(sku).find((v) => /talla|size|tama/i.test(v.nombre)) || {}).valor || '',
+      // Datos opcionales para "google_extras" (solo se publican si la tienda los pide).
+      mpn: refId(sku),
+      nombreProducto: String(p.productName || '').trim().slice(0, 150),
+      detalles: especificaciones(p),
+      video: ((sku.Videos || sku.videos || []).find((v) => /^https?:\/\//i.test(v)) || ''),
       // Datos para las reglas de exclusión.
       rutas: (p.categories || []).map((r) => r.split('/').map(normalizar).filter(Boolean).join('/')),
       categoriaIds: [...new Set((p.categoriesIds || []).flatMap((r) => r.split('/').filter(Boolean)))],
@@ -798,6 +803,22 @@ function agregarItems(p, t, items, vistos, fuentes, conteo) {
     fuentes[venta.fuente] = (fuentes[venta.fuente] || 0) + 1;
     items.push(item);
   }
+}
+
+// Referencia del SKU en VTEX (RefId), útil como MPN. Se ignora si es igual al GTIN.
+function refId(sku) {
+  const ref = (sku.referenceId || []).find((r) => r && r.Value);
+  const valor = ref ? String(ref.Value).trim() : '';
+  return valor && valor !== String(sku.ean || '').trim() && valor.length <= 70 ? valor : '';
+}
+
+// Especificaciones del producto en VTEX (ej. Composición, Cuidados) → [{ nombre, valor }].
+function especificaciones(p) {
+  return (p.allSpecifications || [])
+    .map((nombre) => ({ nombre: String(nombre).slice(0, 140), valor: [].concat(p[nombre] || []).join(', ').trim().slice(0, 1000) }))
+    // Solo datos cortos y limpios (Composición, Cuidados…): los textos largos o con formato son descripciones, no detalles.
+    .filter((e) => e.nombre && e.valor && e.valor.length <= 300 && !/[\r\n*#<>]/.test(e.valor))
+    .slice(0, 100);
 }
 
 // Reproduce el precio que muestra el front: base + impuesto informado por VTEX.
@@ -957,6 +978,28 @@ function feedPinterest(items, t) {
   ])]);
 }
 
+// Atributos adicionales de Google, opt-in por tienda: "google_extras": ["mpn", "material", "product_detail", "item_group_title", "video_link"].
+// Sin la opción no se agrega nada y el feed queda exactamente igual.
+function extrasGoogle(i, t, tag) {
+  const pedidos = new Set(t.google_extras || []);
+  if (!pedidos.size) return [];
+  const salida = [];
+  if (pedidos.has('mpn') && i.mpn) salida.push(tag('mpn', i.mpn));
+  if (pedidos.has('item_group_title')) salida.push(tag('item_group_title', i.nombreProducto));
+  if (pedidos.has('material')) {
+    const m = i.detalles.find((d) => /^(composici[oó]n|material)/i.test(d.nombre));
+    if (m) salida.push(tag('material', m.valor.slice(0, 200)));
+  }
+  if (pedidos.has('product_detail')) {
+    for (const d of i.detalles) {
+      salida.push('<g:product_detail>' + tag('section_name', 'Especificaciones') + tag('attribute_name', d.nombre) +
+        tag('attribute_value', d.valor) + '</g:product_detail>');
+    }
+  }
+  if (pedidos.has('video_link') && i.video) salida.push(tag('video_link', i.video));
+  return salida;
+}
+
 function feedGoogle(items, t) {
   const tag = (nombre, valor) => (valor ? `<g:${nombre}>${xml(valor)}</g:${nombre}>` : '');
   const cuerpo = items.map((i) => [
@@ -966,10 +1009,13 @@ function feedGoogle(items, t) {
     ...i.imagenes.slice(1, 11).map((img) => tag('additional_image_link', img)),
     tag('availability', i.disponible ? 'in_stock' : 'out_of_stock'), tag('condition', 'new'),
     tag('price', precio(i.precio, t.moneda)), tag('sale_price', precio(i.oferta, t.moneda)),
-    tag('brand', i.marca), i.gtin ? tag('gtin', i.gtin) : tag('identifier_exists', 'no'),
+    tag('brand', i.marca), i.gtin ? tag('gtin', i.gtin)
+      // Con marca + MPN el producto ya tiene identificador: no se declara identifier_exists=no.
+      : ((t.google_extras || []).includes('mpn') && i.mpn && i.marca ? '' : tag('identifier_exists', 'no')),
     tag('item_group_id', i.grupo), tag('product_type', i.categoria),
     tag('google_product_category', categoriaGoogle(i, t)),
     ...(t.ropa ? COLS_ROPA.map((c, n) => tag(c, valoresRopa(i, t)[n])) : []),
+    ...extrasGoogle(i, t, tag),
     ...(t.google_excluir_destinos || []).map((d) => tag('excluded_destination', d)),
     '</item>',
   ].filter(Boolean).join('\n')).join('\n');
