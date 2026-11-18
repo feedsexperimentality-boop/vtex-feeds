@@ -18,6 +18,11 @@
       "google",
       "tiktok",
       "pinterest"
+    ],
+    "google_extras": [
+      "mpn",
+      "material",
+      "product_detail"
     ]
   },
   {
@@ -47,6 +52,11 @@
       "google",
       "tiktok",
       "pinterest"
+    ],
+    "google_extras": [
+      "mpn",
+      "material",
+      "product_detail"
     ]
   },
   {
@@ -87,6 +97,11 @@
       "google",
       "tiktok",
       "pinterest"
+    ],
+    "google_extras": [
+      "mpn",
+      "material",
+      "product_detail"
     ]
   },
   {
@@ -119,6 +134,7 @@
       "Local_inventory_ads"
     ],
     "google_extras": [
+      "mpn",
       "material",
       "product_detail"
     ],
@@ -139,6 +155,11 @@
       "google",
       "tiktok",
       "pinterest"
+    ],
+    "google_extras": [
+      "mpn",
+      "material",
+      "product_detail"
     ]
   }
 ]
