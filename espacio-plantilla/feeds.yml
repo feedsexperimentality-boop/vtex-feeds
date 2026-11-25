@@ -65,7 +65,17 @@ jobs:
         with:
           path: public
 
+      # GitHub a veces falla al publicar ("Fetching artifact metadata failed"): se reintenta tras 1 minuto.
       - uses: actions/deploy-pages@v4
+        id: publicar
+        continue-on-error: true
+
+      - name: Reintentar publicación
+        if: steps.publicar.outcome == 'failure'
+        run: sleep 60
+
+      - uses: actions/deploy-pages@v4
+        if: steps.publicar.outcome == 'failure'
 
       - name: Reportar error
         if: steps.generar.outcome == 'failure'

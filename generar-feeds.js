@@ -164,13 +164,21 @@ const FEEDS_INDICE = [
 ];
 
 // El cron corre en el minuto 7 de cada hora; las tiendas diarias pueden correr desde las 23,5 h.
+// Las tiendas "cada hora" esperan 50 minutos y la tarea corre en los minutos 7, 27 y 47 (en los
+// espacios de tiendas grandes, en el 17): la próxima es el primero de esos horarios después de la espera.
 function proximaActualizacion(estado) {
   const horas = estado.frecuencia_horas || 1;
-  const desde = Date.parse(estado.actualizado) + (horas > 1 ? horas * 3600e3 - 30 * 60e3 : 0);
-  const proxima = new Date(desde);
-  proxima.setUTCMinutes(7, 0, 0);
-  if (proxima.getTime() <= desde) proxima.setTime(proxima.getTime() + 3600e3);
-  return proxima.toISOString();
+  const desde = Date.parse(estado.actualizado) + (horas > 1 ? horas * 3600e3 - 30 * 60e3 : 50 * 60e3);
+  const minutos = horas > 1 ? [17, 7, 27, 47] : [7, 27, 47];
+  const hora = new Date(desde);
+  hora.setUTCMinutes(0, 0, 0);
+  for (let h = 0; h < 3; h++) {
+    for (const m of minutos.slice().sort((a, b) => a - b)) {
+      const opcion = hora.getTime() + h * 3600e3 + m * 60e3;
+      if (opcion >= desde) return new Date(opcion).toISOString();
+    }
+  }
+  return new Date(desde).toISOString();
 }
 
 function textoCambios(c) {
@@ -574,8 +582,10 @@ function filtrarExclusiones(items, reglas, feed) {
 }
 
 function tocaActualizar(previo, horas) {
-  if (horas <= 1 || !previo || !previo.actualizado) return true;
+  if (!previo || !previo.actualizado) return true;
   const transcurrido = Date.now() - Date.parse(previo.actualizado);
+  // La tarea corre 3 veces por hora: una tienda "cada hora" espera al menos 50 minutos.
+  if (horas <= 1) return transcurrido >= 50 * 60e3;
   // Margen de 30 min para los retrasos del cron de GitHub.
   return !(transcurrido < horas * 3600e3 - 30 * 60e3);
 }

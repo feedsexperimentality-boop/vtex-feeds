@@ -2,7 +2,9 @@ name: Feeds VTEX
 
 on:
   schedule:
-    - cron: '7 * * * *'   # cada hora, minuto 7 (UTC)
+    # GitHub no garantiza la puntualidad y a veces salta ejecuciones: se programa 3 veces por hora y
+    # cada tienda pequeña se regenera como máximo una vez cada 50 minutos.
+    - cron: '7,27,47 * * * *'
   workflow_dispatch:       # botón "Run workflow" para ejecutar a mano
     inputs:
       tienda:
@@ -46,19 +48,40 @@ jobs:
         continue-on-error: true
         env:
           TIENDA: ${{ inputs.tienda }}
-        run: node generar-feeds.js $TIENDA ${TIENDA:+--forzar} --fase=pequenas
+        run: |
+          set +e
+          node generar-feeds.js $TIENDA ${TIENDA:+--forzar} --fase=pequenas | tee pequenas.log
+          codigo=${PIPESTATUS[0]}
+          # Solo se publica si se regeneró alguna tienda (o si se pidió una tienda a mano).
+          if [ -n "$TIENDA" ] || grep -q ' productos · SKUs' pequenas.log; then echo "publicar=si" >> "$GITHUB_OUTPUT"; fi
+          exit $codigo
 
       - name: Guardar copia (pequeñas)
+        if: steps.pequenas.outputs.publicar == 'si'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash .github/guardar-rama-feeds.sh
 
       - uses: actions/upload-pages-artifact@v3
+        if: steps.pequenas.outputs.publicar == 'si'
         with:
           path: public
           name: pages-pequenas
 
+      # GitHub a veces falla al publicar ("Fetching artifact metadata failed"): se reintenta tras 1 minuto.
       - uses: actions/deploy-pages@v4
+        id: publicar_pequenas
+        if: steps.pequenas.outputs.publicar == 'si'
+        continue-on-error: true
+        with:
+          artifact_name: pages-pequenas
+
+      - name: Reintentar publicación (pequeñas)
+        if: steps.publicar_pequenas.outcome == 'failure'
+        run: sleep 60
+
+      - uses: actions/deploy-pages@v4
+        if: steps.publicar_pequenas.outcome == 'failure'
         with:
           artifact_name: pages-pequenas
 
@@ -88,7 +111,18 @@ jobs:
           name: pages-grandes
 
       - uses: actions/deploy-pages@v4
+        id: publicar_grandes
         if: steps.grandes.outputs.publicar == 'si'
+        continue-on-error: true
+        with:
+          artifact_name: pages-grandes
+
+      - name: Reintentar publicación (grandes)
+        if: steps.publicar_grandes.outcome == 'failure'
+        run: sleep 60
+
+      - uses: actions/deploy-pages@v4
+        if: steps.publicar_grandes.outcome == 'failure'
         with:
           artifact_name: pages-grandes
 
