@@ -11,6 +11,13 @@ Genera cada hora los feeds de **Meta**, **Google Merchant Center**, **TikTok** y
   - Se puede forzar por tienda con `"frecuencia_horas"`.
 - Si VTEX falla o devuelve menos de la mitad de SKUs que la vez anterior, se conservan los feeds anteriores.
 
+## Plataformas
+
+- **VTEX:** APIs públicas de catálogo (precio con el impuesto que informa VTEX, regionalización, colecciones).
+- **Shopify:** catálogo público `/products.json` y `/meta.json`. Cada variante es un SKU; el tipo de producto hace de categoría y las etiquetas (tags) de colecciones para las exclusiones. Shopify solo informa si hay stock (no la cantidad) y limita las consultas, por eso se lee con pausas y reintentos.
+
+El formulario detecta la plataforma solo. En `tiendas.json`, las tiendas Shopify llevan `"plataforma": "shopify"`.
+
 ## URLs de los feeds
 
 ```

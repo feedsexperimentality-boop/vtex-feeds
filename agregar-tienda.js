@@ -27,8 +27,15 @@ async function main() {
   const html = await descargar(url.origin);
   if (!html) return fallar(`No se pudo abrir ${url.origin}`);
 
-  const { cuenta: account, total } = await detectarCuenta(html);
-  if (!account) return fallar(`No se encontró una tienda VTEX pública en ${url.origin}`);
+  // Primero se busca una tienda VTEX; si no lo es, se prueba Shopify.
+  let { cuenta: account, total } = await detectarCuenta(html);
+  let shopify = null;
+  if (!account) {
+    shopify = await detectarShopify(url.origin);
+    if (!shopify) return fallar(`No se encontró una tienda VTEX ni Shopify pública en ${url.origin}`);
+    account = shopify.cuenta;
+    total = shopify.total;
+  }
 
   const tiendas = JSON.parse(fs.readFileSync(ARCHIVO, 'utf8').replace(/^﻿/, ''));
   const dominio = url.origin;
@@ -41,20 +48,36 @@ async function main() {
       productos: total, espacio: Number(existente.espacio) || 0, base: baseEspacio(Number(existente.espacio) || 0) });
   }
 
-  const segmento = await obtenerSegmento(account);
   const slug = crearSlug(url.hostname, tiendas);
-  const tienda = {
-    slug,
-    nombre: nombreManual || nombreDesdeDominio(url.hostname),
-    account,
-    dominio,
-    moneda: segmento.currencyCode || primero(html, /"currency":"([A-Z]{3})"/) || monedaPorDominio(url.hostname),
-    sc: Number(segmento.channel) || Number(primero(html, /"salesChannel":"?(\d+)"?/)) || 1,
-    marca: '',
-    descripcion_default: '',
-    ajuste_precio: 1,
-    feeds: ['meta', 'google', 'tiktok', 'pinterest'],
-  };
+  let tienda;
+  if (shopify) {
+    tienda = {
+      slug,
+      nombre: nombreManual || shopify.nombre || nombreDesdeDominio(url.hostname),
+      plataforma: 'shopify',
+      account,
+      dominio,
+      moneda: shopify.moneda || monedaPorDominio(url.hostname),
+      marca: '',
+      descripcion_default: '',
+      ajuste_precio: 1,
+      feeds: ['meta', 'google', 'tiktok', 'pinterest'],
+    };
+  } else {
+    const segmento = await obtenerSegmento(account);
+    tienda = {
+      slug,
+      nombre: nombreManual || nombreDesdeDominio(url.hostname),
+      account,
+      dominio,
+      moneda: segmento.currencyCode || primero(html, /"currency":"([A-Z]{3})"/) || monedaPorDominio(url.hostname),
+      sc: Number(segmento.channel) || Number(primero(html, /"salesChannel":"?(\d+)"?/)) || 1,
+      marca: '',
+      descripcion_default: '',
+      ajuste_precio: 1,
+      feeds: ['meta', 'google', 'tiktok', 'pinterest'],
+    };
+  }
   // Categoría de la taxonomía de Google para TikTok, Pinterest y Google (Meta no la usa).
   if (categoriaGoogle) tienda.google_product_category = categoriaGoogle;
   aplicarOpciones(tienda, '');
@@ -86,6 +109,33 @@ async function elegirEspacio(tiendas) {
   }));
   const libres = opciones.filter((o) => o.bytes < 0.7 * 1024 ** 3).sort((a, b) => a.bytes - b.bytes);
   return libres.length ? libres[0].n : 0;
+}
+
+// Shopify: /meta.json identifica la tienda (dominio myshopify, nombre, moneda) y /products.json
+// se recorre para contar los productos. Shopify limita las consultas: se reintenta con pausas.
+async function detectarShopify(origen) {
+  const pedir = async (url) => {
+    for (let intento = 1; intento <= 6; intento++) {
+      try {
+        const r = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (VTEX Feeds)' } });
+        if (r.ok) return await r.json();
+        if (r.status !== 429 && r.status < 500) return null;
+      } catch (_) { /* se reintenta */ }
+      await new Promise((resolve) => setTimeout(resolve, 10000 * intento));
+    }
+    return null;
+  };
+  const meta = await pedir(`${origen}/meta.json`);
+  if (!meta || !meta.myshopify_domain) return null;
+  let total = 0;
+  for (let pagina = 1; pagina <= 400; pagina++) {
+    const datos = await pedir(`${origen}/products.json?limit=250&page=${pagina}`);
+    const lote = (datos && datos.products) || [];
+    total += lote.length;
+    if (lote.length < 250) break;
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+  return { cuenta: meta.myshopify_domain, nombre: meta.name || '', moneda: meta.currency || '', total };
 }
 
 // Opciones del formulario (variables ROPA y TITULOS). Devuelve la lista de lo que se aplicó.

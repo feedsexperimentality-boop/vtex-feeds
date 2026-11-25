@@ -50,7 +50,9 @@ async function main() {
   let errores = 0;
   for (const { t, previo } of pendientes) {
     if (fase) {
-      const tamano = previo ? productosPrevios(previo) : await contar(t, '').catch(() => 0);
+      // Shopify no informa el total sin recorrer el catálogo: una tienda nueva se trata como pequeña.
+      const tamano = previo ? productosPrevios(previo)
+        : t.plataforma === 'shopify' ? 0 : await contar(t, '').catch(() => 0);
       const grande = tamano >= UMBRAL_GRANDE;
       if ((fase === 'pequenas' && grande) || (fase === 'grandes' && !grande)) continue;
     }
@@ -219,6 +221,12 @@ function bloqueExclusiones(t, estado, repo, html, numero) {
 </div>`;
 }
 
+// Etiqueta de la plataforma de la tienda (VTEX por defecto).
+function etiquetaPlataforma(t, mini) {
+  const shopify = t.plataforma === 'shopify';
+  return `<span class="chip ${shopify ? 'shopify' : 'vtex'}${mini ? ' mini' : ''}">${shopify ? 'Shopify' : 'VTEX'}</span>`;
+}
+
 function escribirIndice(tiendas, uso, remotos) {
   const repo = `${DUENO}/${REPO_PRINCIPAL}`;
   const html = (v) => String(v == null ? '' : v)
@@ -253,7 +261,7 @@ function escribirIndice(tiendas, uso, remotos) {
   <div class="metrica"><span>Última actualización</span><strong>${fecha(estado.actualizado)}</strong></div>
   <div class="metrica"><span>Próxima (aprox.)</span><strong data-proxima="${html(proximaActualizacion(estado))}">${fecha(proximaActualizacion(estado))}</strong></div>
   <div class="metrica"><span>Cambios en el feed</span><strong>${textoCambios(estado.cambios)}</strong></div>
-  <div class="metrica"><span>Encontrados en VTEX</span><strong>${numero(estado.skus_encontrados)} <small>SKUs · ${numero(estado.productos)} productos</small></strong></div>
+  <div class="metrica"><span>Encontrados en ${t.plataforma === 'shopify' ? 'Shopify' : 'VTEX'}</span><strong>${numero(estado.skus_encontrados)} <small>SKUs · ${numero(estado.productos)} productos</small></strong></div>
   <div class="metrica destacada"><span>Publicados con stock</span><strong>${numero(estado.skus)}</strong></div>
   <div class="metrica"><span>Agotados · no se envían</span><strong>${numero(estado.agotados)}</strong></div>
 </div>
@@ -278,7 +286,7 @@ ${historial.map((h) => `<tr><td>${fecha(h.fecha)}</td><td>${h.skus_encontrados =
     return `<section class="tienda" id="tienda-${html(t.slug)}" data-slug="${html(t.slug)}">
 <header class="cabecera">
   <div><h2>${html(t.nombre)}</h2><a href="${html(t.dominio)}" target="_blank" rel="noopener">${html(t.dominio.replace(/^https?:\/\/(www\.)?/, ''))}</a></div>
-  <div class="chips">${estado ? `<span class="chip">${frecuencia}</span><span class="chip estado" data-estado="${html(proximaActualizacion(estado))}">Al día</span>` : '<span class="chip gris">Generando</span>'}</div>
+  <div class="chips">${etiquetaPlataforma(t)}${estado ? `<span class="chip">${frecuencia}</span><span class="chip estado" data-estado="${html(proximaActualizacion(estado))}">Al día</span>` : '<span class="chip gris">Generando</span>'}</div>
 </header>${cuerpo}
 </section>`;
   }).join('\n');
@@ -286,9 +294,9 @@ ${historial.map((h) => `<tr><td>${fecha(h.fecha)}</td><td>${h.skus_encontrados =
   // Lista lateral ordenada alfabéticamente; cada elemento abre el detalle de su tienda.
   const lista = tiendas.map((t, indice) => ({ t, estado: estados[indice] }))
     .sort((a, b) => a.t.nombre.localeCompare(b.t.nombre, 'es'))
-    .map(({ t, estado }) => `<button type="button" class="item" data-abrir="${html(t.slug)}" data-buscar="${html(`${t.nombre} ${t.dominio} ${t.account}`.toLowerCase())}">
+    .map(({ t, estado }) => `<button type="button" class="item" data-abrir="${html(t.slug)}" data-buscar="${html(`${t.nombre} ${t.dominio} ${t.account} ${t.plataforma || 'vtex'}`.toLowerCase())}">
   <span class="luz${estado ? '' : ' gris'}"${estado ? ` data-estado="${html(proximaActualizacion(estado))}"` : ''}></span>
-  <span class="item-texto"><strong>${html(t.nombre)}</strong><small>${estado ? `${numero(estado.skus)} SKUs · ${estado.frecuencia_horas > 1 ? 'Diaria' : 'Cada hora'}` : 'Generando…'}</small></span>
+  <span class="item-texto"><strong>${html(t.nombre)} ${etiquetaPlataforma(t, true)}</strong><small>${estado ? `${numero(estado.skus)} SKUs · ${estado.frecuencia_horas > 1 ? 'Diaria' : 'Cada hora'}` : 'Generando…'}</small></span>
 </button>`).join('\n');
 
   escribir(path.join(SALIDA, 'index.html'), `<!DOCTYPE html>
@@ -297,7 +305,7 @@ ${historial.map((h) => `<tr><td>${fecha(h.fecha)}</td><td>${h.skus_encontrados =
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Feeds VTEX · Experimentality</title>
+<title>Feeds de catálogo · Experimentality</title>
 <link rel="icon" href="https://www.experimentality.co/icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -344,6 +352,9 @@ h2 { margin:0; font-size:20px; font-weight:600; }
 .chip.estado { background:var(--verde-suave); color:var(--verde-texto); }
 .chip.atrasada { background:var(--error-fondo); color:var(--error); }
 .chip.gris { background:#f1f1f1; color:var(--suave); }
+.chip.vtex { background:#fde8ef; color:#c4124d; }
+.chip.shopify { background:#e9f5e1; color:#3d7a1f; }
+.chip.mini { font-size:10px; padding:1px 7px; vertical-align:middle; font-weight:600; }
 .metricas { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin:18px 0 6px; }
 .metrica { border:1px solid var(--borde); border-radius:8px; padding:10px 12px; min-width:0; }
 .metrica span { display:block; font-size:12px; color:var(--suave); }
@@ -419,7 +430,7 @@ body.admin .boton.solo-admin { display:inline-block !important; }
 </head>
 <body>
 <div class="barra"><div class="barra-in">
-  <a class="logo" href="https://www.experimentality.co/es" target="_blank" rel="noopener"><img src="https://www.experimentality.co/logo-light.svg" alt="Experimentality"><span>Feeds VTEX</span></a>
+  <a class="logo" href="https://www.experimentality.co/es" target="_blank" rel="noopener"><img src="https://www.experimentality.co/logo-light.svg" alt="Experimentality"><span>Feeds de catálogo</span></a>
   <a class="boton solo-admin" href="https://github.com/${repo}/issues/new?template=nueva-tienda.yml" target="_blank" rel="noopener">+ Agregar tienda</a>
 </div></div>
 <main>
@@ -576,7 +587,8 @@ async function generarTienda(t, previo) {
   const productos = new Set();
   const skus = new Set();
   const conteo = { encontrados: 0, agotados: 0, incompletos: 0, link_roto: 0, links_rotos: [] };
-  const rastreo = await rastrear(t, (lote) => {
+  const leer = t.plataforma === 'shopify' ? rastrearShopify : rastrear;
+  const rastreo = await leer(t, (lote) => {
     for (const p of lote) {
       productos.add(p.productId);
       agregarItems(p, t, items, skus, fuentes, conteo);
@@ -725,6 +737,81 @@ async function dividirPorPrecio(t, min, max) {
   return [...await dividirPorPrecio(t, min, medio), ...await dividirPorPrecio(t, medio, max)];
 }
 
+// ---------- Shopify ----------
+// Lee el catálogo público (/products.json) y convierte cada producto al mismo formato que entrega
+// VTEX, para que el resto del proceso (precios, exclusiones, ropa y feeds) funcione igual.
+// Shopify limita las consultas (HTTP 429): se va de a una página, con pausas y reintentos.
+
+const esperar = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function pedirShopify(url, intentos = 8) {
+  for (let intento = 1; ; intento++) {
+    const r = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (VTEX Feeds)' } });
+    if (r.ok) return r.json();
+    if (intento >= intentos || ![429, 430, 500, 502, 503, 504].includes(r.status)) {
+      throw new Error(`HTTP ${r.status} en ${url.split('?')[0]}`);
+    }
+    const espera = Number(r.headers.get('retry-after')) * 1000 || 10000 * intento;
+    await esperar(Math.min(espera, 90000));
+  }
+}
+
+async function rastrearShopify(t, alRecibirLote) {
+  const base = t.dominio.replace(/\/+$/, '');
+  let total = 0;
+  for (let pagina = 1; pagina <= 400; pagina++) {
+    const { products } = await pedirShopify(`${base}/products.json?limit=250&page=${pagina}`);
+    if (!Array.isArray(products) || !products.length) break;
+    total += products.length;
+    alRecibirLote(products.map((p) => productoDesdeShopify(p, base)));
+    if (products.length < 250) break;
+    await esperar(1500);
+  }
+  return { total, grupos: 1 };
+}
+
+function productoDesdeShopify(p, base) {
+  const opciones = (p.options || []).filter((o) => o.name && o.name !== 'Title');
+  const fotosProducto = (p.images || []).map((i) => i.src);
+  return {
+    productId: String(p.id),
+    productName: p.title || '',
+    description: p.body_html || '',
+    linkText: p.handle || '',
+    brand: p.vendor || '',
+    brandId: '',
+    // El tipo de producto hace de categoría y las etiquetas (tags) de colecciones para las exclusiones.
+    categories: p.product_type ? [`/${p.product_type}/`] : [],
+    categoriesIds: [],
+    productClusters: Object.fromEntries((p.tags || []).map((tag) => [tag, tag])),
+    items: (p.variants || []).map((v) => {
+      const propias = (p.images || []).filter((i) => (i.variant_ids || []).includes(v.id)).map((i) => i.src);
+      const fotos = [...new Set([...(v.featured_image ? [v.featured_image.src] : []), ...propias, ...fotosProducto])];
+      const precio = Number(v.price) || 0;
+      const antes = Number(v.compare_at_price) || 0;
+      const sku = {
+        itemId: String(v.id),
+        name: v.title === 'Default Title' ? '' : (v.title || ''),
+        ean: v.barcode || '',
+        referenceId: v.sku ? [{ Key: 'RefId', Value: v.sku }] : [],
+        __url: `${base}/products/${p.handle}?variant=${v.id}`,
+        images: fotos.map((src) => ({ imageUrl: src })),
+        variations: opciones.map((o) => o.name),
+        sellers: [{
+          sellerId: '1', sellerDefault: true,
+          commertialOffer: {
+            Price: precio, ListPrice: antes > precio ? antes : precio, Tax: 0,
+            // Shopify solo indica si hay stock, no la cantidad.
+            AvailableQuantity: v.available ? 1 : 0, IsAvailable: Boolean(v.available),
+          },
+        }],
+      };
+      for (const o of opciones) sku[o.name] = [v[`option${o.position}`]].filter(Boolean);
+      return sku;
+    }),
+  };
+}
+
 async function rastrear(t, alRecibirLote) {
   const total = await contar(t, '');
   const grupos = total <= LIMITE_VTEX ? [{ fq: '', total }] : await dividirPorPrecio(t, 0, PRECIO_MAXIMO);
@@ -775,7 +862,7 @@ function agregarItems(p, t, items, vistos, fuentes, conteo) {
       grupo: String(p.productId),
       titulo,
       descripcion: limpiarHtml(p.description || p.metaTagDescription) || t.descripcion_default || titulo,
-      link: `${t.dominio.replace(/\/+$/, '')}/${encodeURI(p.linkText)}/p?skuId=${sku.itemId}`,
+      link: sku.__url || `${t.dominio.replace(/\/+$/, '')}/${encodeURI(p.linkText)}/p?skuId=${sku.itemId}`,
       imagenes: fotos.map((i) => imagen(i.imageUrl, t.tamano_imagen || 800)).filter(Boolean),
       imagenesPinterest: fotos.map((i) => imagen(i.imageUrl, 1000, 1500)).filter(Boolean),
       disponible: venta.valor > 0 && (oferta.AvailableQuantity > 0 || oferta.IsAvailable === true),
@@ -878,6 +965,10 @@ function formatoTitulo(texto) {
 
 function imagen(url, ancho, alto = ancho) {
   if (!url) return '';
+  // Shopify redimensiona con el parámetro width (conserva la proporción de la foto).
+  if (/cdn\.shopify\.com|\/cdn\/shop\//.test(url)) {
+    return `${String(url).replace(/^\/\//, 'https://').replace(/^http:/, 'https:')}${url.includes('?') ? '&' : '?'}width=${ancho}`;
+  }
   return String(url)
     .replace(/^http:/, 'https:')
     .replace(/(\/arquivos\/ids\/\d+)(-\d+-\d+)?/, `$1-${ancho}-${alto}`);
